@@ -1,0 +1,378 @@
+---
+title: OCCUR - An automated data citation system for OPeNDAP resources of remote sensing data
+author: Niklas Griessbaum[^1], James Frew
+date: "2022-09-03"
+output:
+  pdf_document:
+    highlight: tango
+numbersections: true
+bibliography: /home/griessbaum/Dropbox/UCSB/library/library.bib
+link-citations: yes
+linkcolor: blue
+header-includes:
+    - \usepackage{hyperref}         
+    - \usepackage{siunitx}
+    - \DeclareSIUnit\month{month}
+    - \usepackage{lmodern}
+    - \usepackage[acronym]{glossaries}    
+    - \include{context/acronyms.tex}
+include-before:
+	- \printglossaries		
+---
+
+# Abstract
+\gls{OCCUR} is web service that creates identifiers and citations for data served by \gls{OPeNDAP} servers. As a partial implementation of the \gls{RDA} \gls{WGDC} guidelines, it addresses the need to identify arbitrary subsets of revisable datasets. OCCUR creates identifiers from a combination of an OPeNDAP query and a timestamp, and saves a hash of the query's result set. OCCUR can then de-reference these identifiers to access the data via OPeNDAP, and to generate human-readable citation snippets. When accessing data via an identifier, OCCUR compares the saved hash with the hash of the retrieved data, to determine whether the data has changed since it was cited. OCCUR uses CiteProc to generate citation snippets from the identifier's OPeNDAP query, timestamp, dataset-level metadata provided by the OPeNDAP server, and optionally the result set hash.
+
+# Introduction
+## Why Data citations
+[@Hey2009] coin the term *fourth paradigm* as "using computers to gain understanding from data created and stored in our electronic data stores". The fourth paradigm adds the exploration of data collected from instruments and simulations to the traditional empirical, theoretical, and computational approaches to scientific research. In this context, data collection and assembly are themselves significant research activities [@Frew2012].
+
+A crucial step into the fourth paradigm is acknowledging data as first-class research products. As such, data must be persistently available, documented, citable, reusable, and possibly peer-reviewed [@Callaghan2012; @Kratz2014] - a process summarized as making data "\gls{FAIR}" (findable, accessible, interoperable, and reusable) [@Wilkinson2016]. Data citation is one of the required building blocks to achieve this goal, and widespread adoption of data citations is expected to benefit the progress of science [@CODATA2013; @JDDCP2014].
+
+However, there does not seem to be a consensus on what data publication means [@Kratz2014], nor on how data citation mechanisms are to be implemented [@Costello2009]. The lack of data citation standards was already criticized more than a decade ago by [@AltKin07]. Years later, [@Altman2015] as well as [@Tenopir2011] found that even though required by publishers, researchers still too often do not make data publicly available, nor cite the data consistently. There appear to be both cultural and technical reasons for this.
+
+[@Lawrence2011] find that traditionally only conclusions are valued&mdash;little attention is given to the fitness of the data for *re-*interpretation. This reduces the motivation for data production and publishing. Even more so, [@Tenopir2011] stress that researchers may actually be motivated to purposefully withhold data in order to retain their own ability to publish findings.
+
+On the technical side, robustness, openness, and uniformity in data publication are lacking [@Starr2015; @Koltay2016]. Cost, not so much for the storage, but for curation efforts is another reason preventing data publication [@Gray2002]. [@Tenopir2011] states that a major reason for data withholding is the effort required to publish data. Additionally, [@Belter2014] finds that even when used, data citation practices are inconsistent. [@Assante2016] illustrates citation practices ranging from exporting a formatted citation string (or a generic format such as RIS or BibTex), to embedding links to the data, to sharing data on social media.
+
+To address the lack of standards and uniformity, The RDA WGDC released 14 recommendations to enable automized and machine actionable identification and citation of evolving and subsettable datasets [@Rauber2015a; @Rauber2015; @Rauber2021] describes several (partial) implementations of those recommendations.
+
+[@Silvello2017] provides an exhaustive review of the current state of data citations in terms of both motivations and implementations. Based on a meta-study, the author identified 6 main motivations for data citations: attribution, connection, discovery, sharing, impact, and reproducibility. We simplify these to identity, attribution, and access:
+
+### Identity
+Citations provide an identity to data, enabling referencing and reasoning about data [@Bandrowski2016] even in its absence (e.g., no longer extant, or inaccessible behind a paywall). Identifying data also allows evaluating its usage and hence its relevance and impact [@Honor2016].
+
+### Attribution
+Citations attribute data to authors, allowing them to take professional credit for it, as well as providing accountability to the sponsors of the data's collection/creation and publication. This provides an incentive for sharing [@Niemeyer2016; @Callaghan2012; @Kratz2014].
+
+### Access
+A citation provides information on how to retrieve the cited material (e.g. the journal, year and pages). Persistent access to data is essential to enable reusability and reproducibility [@Starr2015]. 
+
+<!-- 
+Data citations may provide an additional side-effect improving data accessibility: There is evidence suggesting that well curated data will be cited favorably [@Belter2014]. Citations therefore may be a motivating driver for researchers to sustainably curate their data, thus making it more accessible. -->
+
+## What is data citation?
+Citations provide identity, attribution, and access mechanisms to cited material. Data citations differ from citations of printed material in that the cited content (i.e. the data) may evolve over time, and in that meta-information such as authorship or provenance may vary within a continuous dataset [@Buneman2016]. Further, data citations cannot be statically generated for subsettable data, unless the number of possible subsets is trivially small. This is specifically true when data, rather than files, are accessed through e.g. <abbr title="Application programming interface">API</abbr>s[^2]. Data citations therefore have to be machine-actionable, both in terms of dynamic creation (as a function of time and subsetting parameters) and in terms of resolving citations to the cited material [@Assante2016; @Altman2015; @Buneman2016].
+
+Data citations often use actionable <abbr title="Persistent Identifier">PID</abbr>s such as <abbr title="Digital Object Identifier">DOI</abbr>s. However, actionable PIDs blur the distinction between identity and access [@ESIP2012a]. In this context, [@Buneman2010] emphasize that DOIs should be considered a part of, but not a substitute for, data citations. Identity and access remain two distinct facets of a citation and there is utility in data identity regardless of whether or not the data can be accessed or even still exists. [@Parsons2013a] criticize another aspect of DOI use in data citations: DOIs are misunderstood to provide imprimaturs and persistence. However, a DOI cannot provide persistence and should solely be understood as a locator and identifier, which is required long before an imprimatur can be issued.
+
+In the following, we address questions related to data citation:
+
+1. How are datasets and their subsets identified?
+2. How is fixity is assured?
+3. How are revisable datasets handled?
+4. How do citations facilitate access to data?
+5. How are human readable citation snippets/strings generated.
+
+Answers to these questions vary widely depending on the scientific domain, as well as particular dataset characteristics such as complexity (tables; arrays; graphs), volume, update frequency, and the services provided by the repository, specifically with regard to subsetting.
+
+### Identity
+A unique identity can be represented by any arbitrary unique string [@CODATA2013]. In some contexts, already established identifiers such as filenames [@Buneman2016] or accession numbers [@Bandrowski2016] may serve this purpose. In practical terms, [@AltKin07] suggest that the identity should double as a handle to the data by associating it with a naming resolution service, e.g. through the use of e.g. DOI, <abbr title="Life-Science Identifier">LSID</abbr>, <abbr title="Uniform Resource Name">URN</abbr>, <abbr title="Handle.Net Registry">HNR</abbr>[^3], or <abbr title="Uniform Resource Locator">URL</abbr>.
+
+In contrary to traditional publications, data may be queried to produce a potentially unlimited number of subsets from a single source [@Davidson2017; @CODATA2013]. It is therefore not only necessary to reference a dataset, but every possible subset of a dataset. [@AltKin07] coin the term "deep citation" to describe the ability to reference subsets of data. Further, data may evolve over time, which opens discussion of how to identify the varying states of a datset [@Huber2015].
+
+This further prompts the question of at which granularity a unique identity should be assigned. [@Buneman2010] therefore introduce the concept of a "citable unit": an object of interest such as a fact stated in a scientific paper, or a subset within a dataset.
+<!---The authors argue against creating identifiers for every object of interest, but rather to wisely choose the granularity of the citable unit. A citation of an object can then be created by appending the identity of the citable unit with information about the location of the object within the citable unit. In relational databases, for example, citable units could be defined through views [@Buneman2016]. --->
+
+<!-- [@Rauber2015] and [@Proll2013], as well as the RDA WGDC [@Rauber2015a], suggest to identify subsets by storing (normalized) queries and associating them with a PID. <!--  Since methods and syntax for subsetting depend on the individual repository technology, [@AltKin07] suggest to cite the entire dataset and append it with a textual description of how the dataset was subsetted. The authors further suggest that if significant pre-processing is done on the dataset, it should be stored and cited with its own identity individually. --> 
+
+### Fixity
+Datasets may change unintentionally through malfunctions or malicious manipulation, or intentionally, due to <abbr title="Create, Update, and Delete">CUD</abbr> operations. Data fixity is the property of data to remain unchanged. Fixity checking verifies that data has not changed. If included into a data citation system, fixity checking can verify if a data object is identical to the referenced data.
+
+[@AltKin07; @Rauber2015; @Crosas2011] suggest including <abbr title="Universal Numerical
+Fingerprint">UNF</abbr>s into data citations to allow fixity checking. Though mentioned in most discussions of data citation systems (e.g. [@Buneman2016; @Davidson2017]), only a few data citation system implementations have addressed fixity so far. <!-- In this context, [@Klump2016] report that the STD-DOI[^4] metadata schema rejected the inclusion of UNFs as they would be dependent on the form of representation (e.g. file formats or character encoding).
+[^4]: <abbr>DFG</abbr> Project Publication and Citation of Scientific Primary Data-->
+
+### Revisability
+Datasets may evolve over time through updating, appending, or deletion [@Klump2016]. We will refer to these datasets as *revisable data* to distinguish them from datasets changing due to errors or malicious manipulation.
+
+Literature frequently intermixes the term "fixity" and the ability to cite revisable datasets. A revisable dataset is anticipated and intended to change its *state* over time. A citation system consequently has be able to distinguish between the states of a revisable dataset [@Rauber2015; @Klump2016]. However, to achieve this, merely the abstract state a citation is referencing has to remain fixed (i.e. there cannot be ambiguity of the referenced state). This is true independently of the ability to de-reference a citation to the referenced state (i.e. the actual state being fixed). Identifying and referencing an ephemeral state of a dataset is a necessary requirement for data citation. However, the ability to persistently retrieve this state of the data is a data publication, not data citation challenge. It is hereby up to the publisher to choose an apt level of zeal:
+
+- **Pessimistic:** Data is assumed to be ephemeral and consequently citations cannot ever be de-referenced.
+- **Optimistic:** Data is assumed to be fixed. Citations always de-reference to the current state of the data.
+- **Opportunistic:** Data is assumed to remained fixed for some time. Citations can be de-referenced only until the data changes.
+- **Pedantic:** Every state of the data is saved. Consequently citations can always be de-referenced to the referenced state.
+
+<!-- [@Klump2016] make a hard distinguishing between growing, and updated dataset. Retrieving any state of a growing dataset can simply be implemented through time ranges, given that records are timestamped.-->
+
+Versioning can be used to identify states of revisable data. We acknowledge that the term *version* is often used synonymously with the term *state* (of a dataset or a single record). However, in the following, we will use the term *version* as a policy-prescribed reference to a state.
+
+<!--Versioning is intuitive and can trivially be implemented e.g. by appending version number suffixes to dataset names[^5]. However, since versioning is merely a *policy*, there is no guarantee for enforcement. Further, "There is currently no agreed standard or recommendation among data communities as to why, how and when data should be versioned"[^6]. The W3C[^7] provides some guidance on how revisable data should be handled on the web, however, RDA[^8] considers theses standards too simple and not scalable. 
+
+[^5]: <https://library.stanford.edu/research/data-management-services/data-best-practices/data-versioning>
+
+[^6]: <https://www.ands.org.au/working-with-data/data-management/data-versioning>
+
+[^7]: <https://www.w3.org/TR/dwbp/#dataVersioning>
+
+[^8]: <https://rd-alliance.org/data-versioning-rda-8th-plenary-bof-meeting>
+-->
+
+A concern in data versioning is how to reach "consensus about when changes to a dataset should cause it to be considered a different dataset altogether rather than a new version"[^9]. From a pure identity perspective, this question is futile since every state needs to be identifiable. The distinguishing between version versus state therefore is mainly connected to the nature of PIDs (and the costs associated with minting them) [@Klump2016] as well as the notion of hierarchical association and provenance.
+
+As mentioned above, it is open for debate whether or not reproducibility is a hard requirement for data citations of a revisable dataset. If not, resolving of citations could be deprecated altogether (pessimistic), or only allowed until the data has changed (opportunistic). The opportunistic approach could e.g. be implemented by timestamping modifications (e.g. by comparing the file systems last modification date) or through fixity checking. The RDA WGDC [@Rauber2015] elaborates on this approach: A dataset (or a subset) should be given a new identity when the data has changed since the last time the dataset (or subset) was requested. This is recommended to be implemented through the use of a normalized query store and checksums [@Ball2015].
+
+<!-- [@Gray2002] advocate for all non-regeneratable data to remain available forever and [@Buneman2010] suggest a dataset to remain accessible once it has been cited. In their implementation, a citation can include a version number, allowing the system to de-refrence a citation to the according state. A similar approach is implemented in the dataverse [@Crosas2011], where citations optionally can contain a dataset version number. -->
+
+<!-- A simple way of keeping previous states availability is snapshotting, e.g. as implemented by the engineering materials repository MatDB[^10]. However, versioning and snapshotting at fixed points in time does not suit well for (near) real-time data [@Huber2015]. Further, depending on the size and revision frequency, storing all revisions as separate exports may not be feasible [@Rauber2015]. To circumvent these issues [@AltKin07] as well as the RDA WGDC [@Rauber2015a, Rauber2015, Proll2013] recommend to store state changes on a record-level rather than on a dataset level: Every state of every record remains persistently stored and is associated with the CUD operation that touched it. All CUD operations are timestamped allowing to identify the validity period of every state. This approach is implemented by [@Alawini2017], for the eagle-iV database.
+
+The concept of versioning at record-level challenges the common understanding of a dataset-wide versioning and opens a debate about whether two subsets of two different dataset-level versions containing identical data should share the same identity. 
+
+[^10]: <http://doi.org/10.17616/R3J917>
+-->
+
+### Access
+There is a common agreement that data citations should make use of actionable PIDs as an access mechanism. E.g. [@AltKin07] suggest a citation to contain an identifier that can be resolved to a landing page (not to the data itself), a requirement also specified by the <abbr title="Joint Declaration of Data Citation Principles">JDDCP</abbr> [@JDDCP2014; @Altman2015]. The landing page in turn should contain a link to the data resource. The advantage is that the identifier can be resolved regardless of whether the data is behind a paywall, or does not exist anymore (at all, or in the referenced state).
+
+<!-- <abbr>DOIs</abbr> are a commonly used actionable <abbr>PID</abbr> in data citations, which can be explained by its maturity and the availability of a global resolving service. [@Honor2016]. Alternatives to <abbr>DOI</abbr> are <abbr>ARK</abbr>, <abbr>PURL</abbr>, <abbr>URL</abbr>/permalinks, or <abbr>PURL</abbr> [@Klump2016, Starr2015]. -->
+
+The question of data access is connected to reproducibility and on what granularity level changing states of a revisable dataset should be stored.
+
+### Citation texts
+Data citation system should make use of metadata standards [@CODATA2013] and should be capable to generate human readable citation strings in order to facilitate the use of data citations and lower the boundaries for data citation [@Buneman2016; @Rauber2015]. An advantage of citation texts including e.g. title, author, and date is that they allow the reader to quickly asses relevance, quality, and concurrency of the cited material [@Buneman2010].
+The ability to automatically create citation texts is also recommendation 11 for data citations of the RDA WGDC.
+
+<!--
+The requirements for the metadata attributes to construct human readable strings slightly vary between recommendations and implementations. An overview of some of the differences can be found in table <a href="#tab_snippet" data-reference-type="ref" data-reference="tab_snippet">1</a>. All of the listed recommendations[^11] require the inclusion of Author, Title, Version. Asides from the stated, following attributes may also be required: Publish Date, distributor, subset definition, Institution, Related Links, File type, Type of Data, Licences, Project name, Keywords, Repository Name, location (if no resolvable identity is used).
+
+|             | PID  | Subject | Description | UNF  |
+| :---------- | :--- | :------ | :---------- | :--- |
+| DataCite    | DOI  | Yes     | Yes         | No   |
+| Dublin Core | Yes  | Yes     | Yes         | No   |
+| Mendeley    | DOI  | No      | Yes         | No   |
+| Figshare    | DOI  | Yes     | Yes         | No   |
+| Dryad       | DOI  | Yes     | No          | No   |
+| Dataverse   | DOI  | No      | No          | Yes  |
+| Zenodo      | DOI  | No      | No          | No   |
+| RDA WGDC    | Yes  | No      | No          | No   |
+
+
+[^11]: DataCite: <https://schema.datacite.org>; Dublin Core <https://schema.datacite.org>; Mendeley <https://data.mendeley.com>; Figshare <https://figshare.com/>; Zenodo <https://zenodo.org>; WGDC [@Rauber2015]
+-->
+
+
+# Implementation
+The OCCUR enables automated citation creation and de-referencing for data served by OPeNDAP servers. It is implemented as a webservice that allows users to:
+
+1. Assign and store identities to data 
+1. Create identifiers for identities 
+1. Resolve identifiers while verifying that the data has not changed since the creation of the identifier. 
+1. Broker identities; i.e. ensuring that identical data is sharing the same identity.
+1. Generate formatted citation snippets for OCCUR identifiers and any arbitrary <abbr>OPeNDAP</abbr> query. 
+
+<abbr>OCCUR</abbr> is built as a 3rd party webservice without any need for modification of data repositories.
+
+
+## OPeNDAP Primer
+The <abbrv>OPeNDAP</abbv>[^20] simplifies access to remote data. It is widely used (but not limited) to access remote HDF and NetCDF files. An OPeNDAP server allows an OPeNDAP client to request the structure and metadata of data as well as query subsets of the data. 
+The client retrieves those requests through HTTP GET requests to an OPeNDAP URL served by the OPeNDAP server. The structure and metadata are retrieved by requesting the Data Descriptor Structure (DDS), and the Data Attribute Structure (DAS) of the data. The former describes the shape of the data (such as the dimensions), while the latter contains metadata populated by the data provider. Queries for data subsetting are specified through constraint expressions in the URL query strings.
+
+
+## Retrieving identities
+In OCCUR, the identity to data is described by a) the query (i.e. the full OPeNDAP URL) that produced the data, and b) a <abbrv>UNF</abbrv> of the result set of the query (i.e. the data). Though not strictly necessary, the time of the identity creation (which serves as a proxy for the time of the query execution) is used as a third attribute to describe an identity to increase convenience and human readability.
+
+An identity’s identifier is the concatenation of the OPeNDAP URL and the identity creation timestamp. (See class diagram in Figure <a href="#fig_store" data-reference-type="ref" data-reference="fig_store">1</a>). Identities and their corresponding identifiers are permanently stored within OCCUR upon user request.
+
+A user can retrieve a data identifier by submitting the <abbr>OPeNDAP</abbr> URL used to produced the data to <abbr>OCCUR</abbr> with the following <abbr>REST</abbr> <abbr>API</abbr> call:
+
+```http
+GET $OCCUR_HOST/store/?dap_url=$DAP_URL
+```
+
+When a user requests to retrieve the identity of data, OCCUR first fetches the queried data from the OPeNDAP server and creates a <abbr>UNF</abbr> (by default, a md5 hash) of the current state of the data. OCCUR will then verify if an identity to the same query has already been stored. If not, it stores the query together with the <abbr>UNF</abbr> as well as the current timestamp. The user is then provided with the newly created identifier. 
+
+If one or more identifiers to the same OPeNDAP URL already have been stored, OCCUR compares the <abbr>UNF</abbr> of the current state of the data to the <abbr>UNFs</abbr> of the stored identities to the same OPeNDAP URL. If an identity with the identical query and <abbr>UNF</abbr> is found, it is assumed that the data currently is in the same state as at the time this stored identity was created. Their identity is therefore identical and the user is provided with the identifier of this stored identity. 
+
+If the <abbr>UNF</abbr> of the current state differs from all stored <abbr>UNF</abbr> to the same OPeNDP URL, a new identity is created and the user is provided with this newly created identifier. Figure <a href="#fig_store" data-reference-type="ref" data-reference="fig_store">1</a> schematically illustrates the flow for the retrieval of an identity.
+
+![Flow for the retrieval of an identity.](images/C1/store.png)
+
+
+## De-Referencing identities
+<abbr>OCCUR</abbr> follows an opportunistic approach for the de-referencing of identities: An identifier can only be de-referenced during the time interval between identity creation and the time the state of the referenced data changes. A user can de-reference an identifier by submitting the following <abbr>REST</abbr> <abbr>API</abbr> call:
+
+```http
+GET $HOST/dereference/?identifier=$IDENTIFIER
+```
+
+OCCUR first verifies if an identity for the submitted identifier exists/is stored. If so, OCCUR will lookup the associated OPeNDAP query and <abbr>UNF</abbr>. OCCUR then executes the stored query to retrieve the current state of the data. For this state, the UNF is calculated and compared to the stored UNF. If the UNFs match, it can be assumed that the data is in the same state as it was during the creation of the identity. The user thus can be redirected to the (landing page of the) data.
+
+If the UNFs don’t match, the current state can be assumed to differ from the state of the data at the identity creation. The user thus will be redirected to a landing page containing a warning indicating that the referenced state of the data is not accessible anymore. It then is up to the user whether or not to retrieve the data in its current state. The flow of the de-referencing is illustrated in figure <a href="#fig_dereference" data-reference-type="ref" data-reference="fig_dereference">2</a>.
+
+![Flow for the de-referencing an identity](images/C1/dereference.png)
+
+
+## Formatting citations
+
+OCCUR allows to create human-readable formatted citation snippet from both OCCUR identifiers and plain OPeNDAP URLs. This service can be understood as the OPeNDAP pendant to [www.crosscite.org](www.crosscite.org), which allows the creation of citation snippets from <abbr>DOIs</abbr>.
+
+A user specifies the (e.g. journal) formatting style[^15] together with the identifier or the OPeNDAP URL. Besides human readable strings, a user can choose to retrieve the raw bibliographic information in bibtex or CSL-JSON format. In its simplest form, a user can request a formatted citation snippet with the following REST API calls:
+
+To format an identifier:
+
+```http
+GET $HOST/format/identifier=$IDENTIFIER&style=$STYLE
+```
+
+Or, for a plain OPeNDAP URL
+
+```http
+GET $HOST/format/dap_url=$DAP_URL&style=$STYLE
+```
+
+For the first case, OCCUR will first verify if an identity with the specified identifier exists. If it exists, <abbr>OCCUR</abbr> will lookup the according OPeNDAP query and derive the URL of the according <abbr>DAS</abbr>. The <abbr>DAS</abbr> is then fetched and OCCUR will extract metadata from its "global" section[^16]. OCCUR will hereby extract any legal citeproc-py keyword (see: appendix <a href="#app_citeproc" data-reference-type="ref" data-reference="app_citeproc">4</a>). This metadata is converted into the citeproc-csl JSON format. In case the <abbr>DAS</abbr> contains a <abbr>DOI</abbr>, OCCUR will query <https://www.doi.org> for the CSL-JSON representation of this <abbr>DOI</abbr> [^17] to retrieve additional metdata.
+
+The CSL JSON of the DAS and the CSL JSON of the DOI are then merged and, together with the style definition, fed into citeproc[^18] to produce a formatted citation string, which is served to the user.
+
+In case the DAS does not contain a DOI or the user wants to overwrite the DOI specified in the DAS, the user can choose to add a DOI to the snippet request i.e. with the following REST API call:
+
+```http
+GET $HOST/format/identifier=$IDENTIFIER&style=$STYLE&doi=$DOI
+```
+
+The flow for the creation of the citation snippet is illustrated in figure <a href="#fig_format" data-reference-type="ref" data-reference="fig_format">3</a>.
+
+![Formatting of citations.](images/C1/format.png)
+
+
+
+## Web frontend and landing pages
+The aforementioned web service endpoints default to resolve to landing pages rather than to the the identifiers or data itself. The reference/identifier endpoint resolves to a landing page that allows user to inspect the stored identity (specified by the URL, the UNF and identity creation timestamp), access the referenced data, as well as to format the identity to a human readable citation snippet. 
+
+Seminally, the dereference/data endpoint resolves to a landing page of the data rather than the data itself. Those landing pages provide the user with links to the identifier landing page and to the referenced data. If the referenced state of the data is not available anymore, the landing page additionally contains a warning informing the user that the data has changed. The user may now choose to access the newer state of the data or create a new identity.
+
+
+## Use Example
+A schematic timeline in the use of OCCUR might look as follow: User A queried data from an  OPeNDAP server. The user now wants to create and identifier for this data to include in a reference. They thus take the OPeNDAP URL used to query the data to OCCUR and request an identifier. OCCUR resolves the OPeNDAP URL, fetches the data, computes the UNF and stores it together with the OPeNDAP URL and the current timestamp as a new identity. The user then is provided with the identities' identifier. They then may use this identifier to create a human readable citation string. Later, another user B may receive the reference including the OCCUR identifier and uses OCCUR to de-reference it to the referenced data. OCCUR will first verify if the referenced state is still available. If so, the user is provided with the data. If not, the user is provided with a warning and the option to either access the newer state of the data or create a new identity.
+
+Both the retrieval of an identity and the de-referencing of the identifier is illustrated in figure <a href="#fig_storingcitation" data-reference-type="ref" data-reference="fig_storingcitation">4</a>.
+
+
+![Timeline of identity creation and retrieval.](images/C1/storing_resolving.jpg)
+
+# Related work
+<!-- Not obvious if this section is needed considering the detailed description in Rauber2021 -->
+
+The following is a non-comprehensive summary of services for automized data citation creation that have been presented in the past:
+
+MatDB[^12] implements a data publication and citation service for engineering materials. Dataset are made citable by enforcing minimal discipline-specific metadata and minting DataCite DOIs. Fixity is assured by snapshotting the dataset at the time of DOI minting. Revisability of data is made possible through policy enforced versioning [@Austin2016].
+
+[@Alawini2017], created a citation service for the <abbr>RDF</abbr> eagle-i database. Since this database itself does not version its data (only the most recent version is available), the authors implemented an external service that versions eagle-i data in order to provide access to revised data to the users. The service tracks and stores every change in the original dataset. The authors note that this approach is viable for eagle-i since the dataset changes very slowly.
+
+In the dataverse networks software [@Crosas2011], data is aggregated in ’studies’. Studies may contain several datasets. Each study shares a common persistent identifier. Citation to a dataset (and subsets) is implemented as the combination of the studie’s <abbr>PID</abbr> appended with the UNF of the cited data.
+
+[@Cook2016] presents the data product citations at a <abbr>ORNL</abbr> <abbr>DAAC</abbr>. The DAAC assigns a <abbr>DOI</abbr> per dataset, which may contain anywhere between one and tens of thousands of files. A single file within a dataset can be identified by appending the file’s UUID to the DOI (using the ’urlappend’ functionality of the DOI resolver). The DAAC also provides a MODIS subsetting service. The user can request a citation to the subset which is comprised of the dataset’s citation appended with a textual description of the temporal and/or spatial subsetting. The citation can be requested both as a formatted string as well as in BibTex format.
+
+A very similar approach is implemented for the <abbr>ARM</abbr> Data Archive [@Prakash2016]. Upon data order fulfillment, the user is provided with both the data and a citation that contains a citation including a textual description of the temporal and/or spatial subsetting. The <abbr>ARM</abbr> Data Archive additionally hosts a citation creator, which is a <abbr>GUI</abbr> that allows the creation of a data citation subject to a fully qualified dataset stream name, and optionally manually specified subsetting parameters. The user hereby can choose between the custom ARM citation style, APA, MLA, and chicago.
+
+[@Honor2016] describes a reference implementation for data citations of a database holding neuroimaging (the specific use-case is the <abbr>NITRC</abbr>). The citable unit for their use-case are individual images, which are aggregated in studies/projects. Upon data upload, hierarchically, both each image as well as each studies is assigned a <abbr>DOI</abbr>. The authors recognize that this implementation may result in the generation of many <abbr>DOIs</abbr>, however evaluate the solution feasible for their use case.
+
+[@Proll2013] present a reference implementation for data citations to data managed by a <abbr>RDBMS</abbr>. The system is based on the premise that a timestamped SELECT query can correctly identify data. To allow revisability, the system timestamps every <abbr>CUD</abbr> operation and acknowledges validity timeranges of records rather than allowing modification of records. When a user wants to create a citable subset, the system will store the according timestamped SELECT query, calculates a hash for the result set and assigns a PID to the query.
+
+[@Buneman2010] describes an approach of citing digital archives described by the Envoced Archival Description (EAD) and for the IUPHAR DB. They hereby focus on the concept of citable units and its application on hierarchical/structured and revisable datasets.
+
+[@Rauber2021] details the experiences of several adapters of the 14 RDA WGDC recommendations.
+Among those are the <abbr title="Center for Biomedical Informatics">CBMI</abbr>, <abbr title="Virtual Atomic and Molecular Data Centre">VAMDC</abbr>, <abbr title="Climate Change Centre Austria">CCCA </abbr>, and the <abbr title="Earth Observation Data Centre">EODC</abbr>. All adapters were able to improve their data distribution infrastructure through the adaptations of the recommendations. However, the individual implementations and the required work vastly varied for each adapter. A common challenge can be identified as enabling data versioning and timestamping.
+
+
+<!--
+| Repo      | PID       | Revisability | Fixity   | Deep Citation |
+|:----------|:----------|:-------------|:---------|:--------------|
+| MatDB     | DOIs      | Versioning   | Snapshot | No            |
+| eagle-i   | eagle id  | CUD TS       | UNF      | Query         |
+| Dataverse | Handle    | Versioning   | UNF      | PID+UNF       |
+| ORNL      | DOIs+UID  | Versioning   | None     | Textual       |
+| ARM       | DOIs/Name | Versioning   | None     | Textual       |
+| NITRC     | DOIs      | N/A          | None     | DOIs          |
+| RDBMS     | PID       | CUD TS       | UNFs     | Query         |
+-->
+
+Apart from those fully integrated data citation systems, we want to mention the crosscite DOI Citation formatter[^13]. The crosscite DOI Citation formatter allows to generate citation strings from metadata retrieved from <abbrv>DOI</abbrv> landing pages. The citation strings are formatted through citeproc subject to styles defined through the <abbr>CSL</abbr>[^14].
+
+# Discussion and Outlook
+
+We demonstrated how a third party data citation system can be built for data accessible through the RESTFUL data access protocol OPeNDAP. We define a citeable unit as any result set of a SELECT/GET request. Identities and the corresponding identifiers to citable units can be created and retrieved upon user request. The identities are defined and permanently stored as a combination of the query, the result set’s hash as well as the identity creation timestamp. Identifiers can be opportunistically de-referenced as long as the referenced identity is still available. The availability is verified through the comparison of the hash of the referenced identity and the hash of the result set of the query at the time of de-referencing. It is hereby irrelevant if the data changed intentionally subject to a revision or unintentionally due to rot or malicious manipulation. It shall here be noted that the used hashes stay opaque to the user as OCCUR is handling the result set verification internally.
+
+<!-- OPeNDAP allows users to request data in a delivery container format that differes from the storage container format. OCCUR calculates hashes on the delivery container format rather than on the storage format. It is up for debate whether or not this is desired. -->
+
+On the topic of hashes, OCCUR requires fetching the complete result set in order to calculate the hashes, which may inflict high transfers on both OCCUR and the OPeNDAP resource. To avoid this high transfer, hashes of result sets should be calculated at the point of storage and exposed/queried through an API. DAP4 already provides for the option of including CRC32 checksums in the Dataset Metadata Response (DMR)[^19], which could be used for this purpose.
+
+Identities and identifiers are created, stored, and resolved within OCCUR. This comes with the advantage of low cost. However, it could be argued that these identifiers cannot be considered persistent. It therefore might be necessary to use an external service such as DOI, identifiers.org, or name2thing to mint persistent identifiers to OCCUR identities.
+
+OCCUR identifiers can be converted into human readable citation snippets as well as machine-readable bibliographic entries in BiBtex, RIS, and CSL-JSON format. OCCUR hereby exploits that OPeNDAP resources have a designated location for dataset-level metatadata: the <abbr>DAS</abbr>. The metadata extracted from the DAS is combined with the hash, the OPeNDAP query literal as well as the identity creation time to create snippets through citeproc. We recognize that the DAS might be a duplicate location for metadata since in many cases a dataset level DOI has already been registered. In these cases, we encourage merely the inclusion of the dataset DOI into the DAS. OCCUR will parse this DOI and resolve it for the according metadata.
+
+OCCUR is meant to be a concept demonstration that can be adapted to other RESTFUL data access services such as <abbr>WMS</abbr> and <abbr>WCS</abbr>. It could be envisaged to remain a centralized 3rd-party system or be integrated into the data services themselves.
+
+
+
+# Acknowledgments
+
+The development of <abbr>OCCUR</abbr> is supported by the <abbr>ESIP</abbr> federation as a 2018 <abbr>ESIP</abbr> lab project. The work on *bibdap* and <abbr>OCCUR</abbr> has been presented at the 2017 Bren PhD Symposium and the 2018 <abbr>ESIP</abbr> summer meeting. 
+
+# Competing interests
+
+The authors have no competing interests to declare.
+
+
+# Appendix
+## RDA WGDC recommendation compliance
+OCCUR implements several of the 14 RDA <abbr>WGDC</abbr> recommendations [@Rauber2015]. It stores queries together with metadata, PID and timestamps (R7, R8 R9). It additionally  makes use of UNFs to achieve result set verification (R6). Since OPeNDAP normalizes queries by alphabetically sorting the the constraint expressions, OCCUR can also fulfill the recommendation to assure query uniqueness to assure that a single subset is not to referred to by more than one identifier (R4). Further, when used to access files through OPeNDAP, a stable sorting of the result sets can be guaranteed (R5). OCCUR is machine actionable through its REST API (R12) and resolves to human-readable landing pages (R11), both of which allow the creation of formatted citation snippets (R10). Since OCCUR is a 3rd party service, it does not address data versioning (R1) and timestamping (R2) as those are seen as the repositories responsibility. Additionally, a technology migration (R13) and migration verification (R14) will only be possible to be carried out in collaboration with the according repository.
+
+Figure <a href="#fig_WGDC_comparison" data-reference-type="ref" data-reference="fig_WGDC_comparison">5</a> evaluates the compliance of the current state of OCCUR with these recommendations. 
+
+![Evaluation of WGDC compliance](images/C1/comparison.png)
+
+## Legal citeproc keywords
+
+``` python
+NAMES = ['author', 'collection_editor', 'composer', 'container_author',
+         'editor', 'editorial_director', 'illustrator', 'interviewer', 
+         'original_author', 'recipient', 'translator']
+
+DATES = ['accessed', 'container', 'event_date', 'issued',
+         'original_date', 'submitted']
+
+NUMBERS = ['chapter_number', 'collection_number', 
+           'edition', 'issue', 'number', 'number_of_pages', 
+           'number_of_volumes', 'volume']
+
+VARIABLES = ['abstract', 'annote', 'archive', 'archive_location', 
+             'archive_place', 'authority', 'call_number', 'citation_label', 
+             'citation_number', 'collection_title', 'container_title', 
+             'container_title_short', 'dimensions', 'DOI', 'event', 
+             'event_place', 'first_reference_note_number', 'genre',
+             'ISBN', 'ISSN', 'jurisdiction', 'keyword', 'language', 
+             'locator', 'medium', 'note', 'original_publisher', 
+             'original_publisher_place', 'original_title', 'page', 
+             'page_first', 'PMCID', 'PMID', 'publisher', 'publisher_place', 
+             'references', 'section', 'source', 'status', 'title', 
+             'title_short', 'URL', 'version', 'year_suffix']
+```
+
+
+[^1]: Corresponding author. E-mail addresses: griessbaum@ucsb.edu (N. Griessbaum)
+
+[^2]: E.g. <abbr>WMS</abbr>, <abbr>WCS</abbr>, and <abbr>OPeNDAP</abbr> [@Gallagher2005]
+
+[^3]: <http://www.handle.net/>
+
+[^9]: <https://www.w3.org/TR/dwbp/#dataVersioning>
+
+[^12]: <http://doi.org/10.17616/R3J917>
+
+[^13]: <https://citation.crosscite.org/>
+
+[^14]: <https://citationstyles.org/>
+
+[^15]: OCCUR supports any of the formats defined in the official repository for <abbr>CSL</abbr> citation styles (<https://github.com/citation-style-language/styles>
+
+[^16]: the part that satisfies: /(? <= global.* (?=)/*ims*
+
+[^17]: OCCUR uses content negotiation to query doi.org with the header `Accept: application/vnd.citationstyles.csl+json` to retrieve a CSL-JSON metadata response
+
+[^18]: OCCUR uses citeproc-py (<https://github.com/brechtm/citeproc-py>)
+
+[^19]: <https://docs.opendap.org/index.php/DAP4:_Specification_Volume_1#Checksums>
+
+[^20]: here referring to the protocol, not to the company of the same name developing the protocol
+
