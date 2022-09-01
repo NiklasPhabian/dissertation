@@ -7,11 +7,12 @@
 https://github.com/tomncooper/pandoc-gls
 
 
-## For tex
+
+# For tex
 
 sudo apt install texlive-bibtex-extra texlive-science texlive-latex-extra biber
     
-# Build with latex
+## Build with latex
     
     biber occur
     makeglossaries occur.glo
