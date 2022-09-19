@@ -1,4 +1,4 @@
---
+---
 title: A Software Collection to enable STARE-based geospatial analysis of remote sensing data
 date: "2022-09-03"
 output:
