@@ -15,7 +15,7 @@ header-includes:
     - \usepackage{lmodern}
 ---
 
-# Glossary: Foo
+# Glossary
 
 - Dataset
 - Geospatial dataset: A dataset in which space is a dimension.
