@@ -423,12 +423,32 @@ To implement STARE-PODS, we first generate STARE indices for all observations of
 
 ![The advantage of storing data in PODS: The trixels in green and blue correspond to the iFOV of two swaths stored in two granules. In STAREPods, data from each granule get chunked into the bins/PODs corresponding to the red trixels, resulting in geospatially coincident data being stored in the same location.](images/C2/STAREPods_advantage.png)
 
-
 We have prototyped STARE-PODS with STARE-based data partitioning and organization on a traditional file system. This prototype uses three 1-month cross-calibrated microwave radiometer/imager datasets produced by the NASA Precipitation Processing System for NASA Precipitation Measurement Missions, which include (cross-)calibrated brightness temperatures from 18 satellite-borne microwave radiometer/imager instruments in NASA's Global Precipitation Measurement (GPM) mission era, such as AMSR2, ATMS, GMI, MHS, or SSMIS. This set of data products exhibits not only data varieties across the products of different instruments but, due to different iFOV resolutions for different microwave frequencies, also within the same product of the same instrument.
 
 For convenience, we built a catalog on top of the PODS. The catalog is a STARELite database containing one row per chunk. This makes, e.g., finding all chunks that spatiotemporal intersects trivial.
 
 ![A STARELite Databases used as a catalog for chunks within a PODS.](images/C2/STAREPods_catalog.png)
+
+In a testing environment, we retrieved one month's worth of XCAL SSMIS data from F16, F17, and F18 for the period of 2021-01-10 to 2021-02-09; a total of 1314 granules. We created STARE sidecar files for each of those granules. Each sidecar contains the SID of each observation/iFOV/pixel of the granule as well as a set of SIDs representing the spatial coverage of the entire granule.
+
+We then loaded the collection of granule/sidecar pairs into a level 4 PODS, using STAREPods_py. A level 4 PODS shards data at the 4th STARE quadfurcation level. Considering the initial solid with 8 faces, this means that a level 4 PODS has 2048 PODs. The 1314 original granules are split into 3,675,403 chunks distributed over the 2048 PODs. On average, each POD contains about 1800 chunks, though their distribution varies. The size of the chunks varies between 10 kB to 100 kB.  Each chunk is a pickled STAREDataFrame containing the latitude, longitude, timestamp, SID, as well as the measurements for each observation. 
+
+As a benchmarking test, we evaluated the performance of loading all SSMIS data that intersects a complex spatiotemporal bounding box. As the complex spatiotemporal bounding box, we used the extent of a precipitation event over the south western US lasting from the 2021-01-24 until the 2021-01-27. Our testing environment is a m5.x4large AWS instance with both the granules and sidecars as well as the PODS residing on a flexFS volume.
+
+![The spatial extent of a precipitation event lasting from 2021-01-24 to 2021-01-27. Note the complexity of the shape around its southern edges.](images/C2/pod_event_full.png)
+
+In the conventional approach, we utilize the granule naming convention to temporarily subset the granules to the temporal bounding box. This reduces the number of granules from 1314 to 170 candidate granules. We then iteratively read the STARE cover from each sidecar of the candidate granules and verify if the granule spatially intersects our ROI. If not, we discard the candidate. If yes, we load the entire granule into a STAREDataFrame and spatially subset it to the ROI (using STARE). Out of the 170 candidate granules, 70 granules spatially intersect the ROI. Finally, we concatenate all subsetted granule DataFrames. The whole process takes a total time of 46.2 s ± 102 ms (mean ± std. dev. of 10 runs) on our testing server.
+
+  
+![The filename of an SSMIS XCAL granule. Highlighted is the portion of the filename indicating the timestamp of the granule.](images/C2/pod_filename.png)  
+
+We extended the conventional approach by making use of a granule catalog. A granule catalog is a database containing the paths of granules and their sidecars, the tart and beginning times of the granules as well as the spatial coverages of the granules. Using the catalog, we can immediately query for the granules that intersect the spatiotemporal ROI. We can then only load those granules and spatially subset them to our ROI. Using the catalog, we slightly improve the runtime to 44.1 s ± 103 ms (mean ± std. dev. of 10 runs)
+
+In the STAREPods approach, we first find all the PODs that may contain chunks intersecting the ROI. We can simply achieve this by converting the SIDs of STARE cover of our ROI to level 4 (the level of our PODS) and then take the set of those SIDs. Only 29 of the 2048 PODs do intersect our ROI. We then utilize STAREPandas’ read_pods() function to load the chunks into a single STAREDataFrame. Read_pods() iterates through the candidate PODs and loads all chunks whose name contains a specified pattern. Again, we utilize the granule naming convention and specify a pattern corresponding to our temporal bounding box. We finally subset the loaded STAREDataFrame to our ROI since it contains observations that coincide with the ROI at level 4, but not at the ROI at its original resolution (level 9). The whole process takes a total time of 2 s ± 15.8 ms (mean ± std. dev. of 10 runs) on our testing server, bringing us a speedup of over 20x compared to the conventional approach.
+
+![The spatial extent of the precipitation event at STARE quafuraction level 4. There are 29 trixels (and thus PODs) covering the event.](images/C2/pod_event_4.png)
+ 
+Each of the three approaches resulted in loading 225,539 individual SSMIS observations.
 
 \newpage
 \clearpage
