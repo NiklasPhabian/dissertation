@@ -37,7 +37,7 @@ Unfortunately, these steps are seldom seamless in real-world analysis. In the 19
 
 Since there is no unified representation of data in general and geolocation in particular, repositories will deliver data in many possible container formats (*files*) and in many possible geospatial representations. Locations may be expressed in spherical or ellipsoidal geographic coordinate systems, and/or in two-dimensional projected (Cartesian) coordinate systems at varying resolutions.
 
-Consequently, users have to step through an iterative process called Extract, Transform, and Load (ETL) rather than simply searching for and retrieving data. During ETL, data first has to be discovered, then extracted, subsequently transformed into a unified ("harmonized") representation, and finally loaded into a system in which the analysis operations can be carried out (i.e., a desktop GIS, such as ArcGIS; a database, such as PostGIS; and/or a programming language, such as MATLAB, Python, or R). The harmonization process is typically time-consuming, computationally expensive, and bespoke to a particular analysis environment[^0]. The analyst has to balance computational performance and data fidelity: An appropriate geographic or projected coordinate system, as well as a spatiotemporal resolution, has to be chosen, both of which have an implication on the preservation of spatial properties (areas, distances, shapes) and computational performance. While any commonly used geospatial relation test can theoretically be computed in both geographic and projected coordinate systems, operations are cheaper and thus more performant in projected 2D coordinate systems. Further, none of the commonly used desktop GISs (ArcGIS, QGIS) or programming libraries (geopandas, sf) supports spherical or ellipsoidal computations. Only within recent years, technologies that gracefully allow performing geospatial analysis in geographic coordinate systems ([S2geometries](https://s2geometry.io/), [PostGIS geographies](http://postgis.net/workshops/postgis-intro/geography.html), SphereGIS) have become available. Thus, geographic information systems and their users will typically harmonize the data by projecting all relevant data into a single (locally) appropriate coordinate system. Note that projecting geographic locations into a 2D space may not be an option if the ROI has a sufficiently large spatial extent.
+Consequently, users have to step through an iterative process called Extract, Transform, and Load (ETL) rather than simply searching for and retrieving data. During ETL, data first has to be discovered, then extracted, subsequently transformed into a unified ("harmonized") representation, and finally loaded into a system in which the analysis operations can be carried out (i.e., a desktop GIS, such as ArcGIS; a database, such as PostGIS; and/or a programming language, such as MATLAB, Python, or R). The harmonization process is typically time-consuming, computationally expensive, and bespoke to a particular analysis environment[^0]. The analyst has to balance computational performance and data fidelity: An appropriate geographic or projected coordinate system, as well as a spatiotemporal resolution, has to be chosen, both of which have an implication on the preservation of spatial properties (areas, distances, shapes) and computational performance. While any commonly used geospatial relation test can theoretically be computed in both geographic and projected coordinate systems, operations are cheaper and thus more performant in projected 2D coordinate systems. Further, none of the commonly used desktop GISs (ArcGIS, QGIS) or programming libraries (`geopandas`, `sf`) supports spherical or ellipsoidal computations. Only within recent years, technologies that gracefully allow performing geospatial analysis in geographic coordinate systems ([S2geometries](https://s2geometry.io/), [PostGIS geographies](http://postgis.net/workshops/postgis-intro/geography.html), SphereGIS) have become available. Thus, geographic information systems and their users will typically harmonize the data by projecting all relevant data into a single (locally) appropriate coordinate system. Note that projecting geographic locations into a 2D space may not be an option if the ROI has a sufficiently large spatial extent.
 
 [^0]: Anecdotally, consuming the majority of the time.
 
@@ -53,7 +53,7 @@ The combination of irregularity and volume makes it impossible for data reposito
 
 ![Footprints of granules (red) and a region of interest (green). Note that the granule footprints are orders of magnitude larger than the ROI. ](images/C2/roi_vs_footprints.png)
 
-Though the user will have extracted only a small subset of the entire data by extracting only the intersecting bins, they are still faced with having to execute potentially trillions of spatial relation tests both to spatially subset and extract the data and to map the data to other geospatial objects. In most cases, this remains impossible, and even seemingly simple tasks such as clipping or cropping quickly become challenging in conventional geographic information systems and libraries such as QGIS, ArcGIS, PostGIS, R-Spatial, or Geopandas. Since repositories are aware of these limitations, they will offer datasets in which the irregularly spaced locations of the observations are discretized into a (two-dimensional) grid subject to a sampling or aggregation function. In NASA terminology, those datasets are referred to as Level 3 products. The grid dimensions now function as an index and proxy to the geolocation of the observations. While it is often the only possible way for users to process remote sensing data that has been spatially discretized, this approach comes at a cost:
+Though the user will have extracted only a small subset of the entire data by extracting only the intersecting bins, they are still faced with having to execute potentially trillions of spatial relation tests both to spatially subset and extract the data and to map the data to other geospatial objects. In most cases, this remains impossible, and even seemingly simple tasks such as clipping or cropping quickly become challenging in conventional geographic information systems and libraries such as QGIS, ArcGIS, PostGIS, R-Spatial, or `GeoPandas`. Since repositories are aware of these limitations, they will offer datasets in which the irregularly spaced locations of the observations are discretized into a (two-dimensional) grid subject to a sampling or aggregation function. In NASA terminology, those datasets are referred to as Level 3 products. The grid dimensions now function as an index and proxy to the geolocation of the observations. While it is often the only possible way for users to process remote sensing data that has been spatially discretized, this approach comes at a cost:
 
 1. The precision of the geolocation of remotely sensed observations may be orders of magnitude higher than the selected discretized grid resolution (e.g., MODIS geolocation is approximately 50 m at NADIR [@Wolfe2002], whereas data is gridded into 500 m cells). Thus, discretization introduces a significant loss of precision in geolocation.
 2. Since the repository performs discretization, the sampling function may be obscure, if not opaque to the users. This voids transparency and complicates the provenance trace. In some cases, users may favor a sampling function that differs from the one used to generate the gridded data. (A classic example may be that the MOD09GA sampling algorithm favors snow-free observation; being counterproductive if, e.g., snow-covered areas are investigated)
@@ -69,9 +69,7 @@ In summary: The goal of geospatial data analysis is to extract information about
 # Towards a solution
 The conflict between processibility and fidelity can only be resolved through technologies that can __performantly__ determine geospatial coincidence of extensive collections of irregularly spaced locations without needing data discretization. In this paper, I present a collection of software built around the Spatio Temporal Resolution Encoding (STARE) [ref Kuo], which drastically simplifies remote sensing data processing and empowers scientists to utilize the full fidelity of the data. STARE serves as a harmonizing location representation allowing for cheap spatial relation tests between arbitrarily shaped geospatial objects.
 
-STARE is a universal geolocation encoding that obviates the need for gridding and resampling data. It is a geospatiotemporal indexing and representation scheme based on a hierarchical triangular mesh (HTM) [ref Szalay], which recursively subdivides the Earth's surface into nested quadtrees, allowing triangular regions ("trixels") as small as \SI{0.01}{\meter\squared} to be identified with a single integer value. The nesting properties of STARE trixels are an elegant solution for aligning multi-resolution Earth science data. The geospatial coincidence between two trixels can be evaluated by comparing their paths in the STARE tree structure. STARE allows not only to express the location of a point/location (including its spatial uncertainty or resolution) but also arbitrarily shaped areas (polygons) through a trixel tessellation. The resolution is encoded into the STARE index, making it possible to evaluate spatial coincidences of data of differing and/or varying resolutions. This is a required feature to express the location of, e.g., instantaneous fields-of-view (IFOVs) of wide-scan swath data, which is characterized by considerable variations of the footprints of pixels at nadir vs. the footprint of pixels at the end of a scan. Data represented with STARE thus becomes interoperable without resampling and gridding. [@Rilee2021] describes the underlying principles of STARE and the reference implementation of the STARE API, which is exposed through Python bindings in the `pystare` library.
-
-> Frew note: Capitalize language names (Python); use monospace font for named artifacts (`pystare`)
+STARE is a universal geolocation encoding that obviates the need for gridding and resampling data. It is a geospatiotemporal indexing and representation scheme based on a hierarchical triangular mesh (HTM) [ref Szalay], which recursively subdivides the Earth's surface into nested quadtrees, allowing triangular regions ("trixels") as small as \SI{0.01}{\meter\squared} to be identified with a single integer value. The nesting properties of STARE trixels are an elegant solution for aligning multi-resolution Earth science data. The geospatial coincidence between two trixels can be evaluated by comparing their paths in the STARE tree structure. STARE allows not only to express the location of a point/location (including its spatial uncertainty or resolution) but also arbitrarily shaped areas (polygons) through a trixel tessellation. The resolution is encoded into the STARE index, making it possible to evaluate spatial coincidences of data of differing and/or varying resolutions. This is a required feature to express the location of, e.g., instantaneous fields-of-view (IFOVs) of wide-scan swath data, which is characterized by considerable variations of the footprints of pixels at nadir vs. the footprint of pixels at the end of a scan. Data represented with STARE thus becomes interoperable without resampling and gridding. [@Rilee2021] describes the underlying principles of STARE and the reference implementation of the STARE API, which is exposed through Python bindings in the PySTARE library.
 
 ![Evaluating the spatial coincidence of two HTM trixels is achieved by comparing their paths in the tree structure.](images/C2/STARE.png)
 
@@ -97,7 +95,7 @@ With the increased importance of cloud computing, we further addressed the need 
 The remainder of the paper will discuss the following topics:
 
 1. A brief summary of STARE and its capabilities for evaluating spatial coincidence.
-2. The STARE base library and its Python bindings pystare, which stand at the bottom of our software stack.
+2. The STARE base library and its Python bindings PySTARE, which stand at the bottom of our software stack.
 3. Software to convert collections of remote sensing data from legacy/conventional representations to STARE representations (STAREMaster).
 5. A high-level data abstraction and processing API (STAREPandas).
 6. Storage mechanisms and backends for geospatial data in STARE representation (STARELite, PostSTARE, STAREPods).
@@ -110,15 +108,7 @@ Using hierarchical data structures to represent or index geospatial data has bee
 
 The initial applications of quadtrees in the geospatial domain have mainly focused on the representation of two-dimensional data in terms of visualization and image processing and were typically based on the tessellation of squares [@Lugo1995].
 
-An early example of the use of quadtrees to represent the globe three-dimensionally is [@Dutton1984], who proposed the establishment of a Geodesic Elevation Model in which locations of elevation measurements are encoded or indexed in a quadtree. [@Dutton1989] suggests using this quadtree for general indexing of planetary data. The quadtree is created by recursively tessellating the facets of a regular solid, in this case, an octahedron. The triangle faces of the octahedron are broken down with the triacon
-
-> Frew note: [WTF?](https://www.1mg.com/drugs/triacon-200mg-capsule-408986)
-
-breakdown. In a single step, the triacon triples the number of facets on each iteration, resulting in two alternating hierarchies. Every level is fully contained within the level two steps above; two triacon breakdown steps, therefore, tessellate a triangle into nine smaller triangles. The address/index/code ("gemcode") of each triangle is the concatenation of the facet numbers (one through nine) iterated to arrive at the triangle.
-
-> Frew note: you really need a picture here…
-
-The author envisages a replacement of coordinates in geospatial data with geocodes, given that the community could agree on a standard method to generate geocodes.
+An early example of the use of quadtrees to represent the globe three-dimensionally is [@Dutton1984], who proposed the establishment of a Geodesic Elevation Model in which locations of elevation measurements are encoded or indexed in a quadtree. [@Dutton1989] suggests using this quadtree for general indexing of planetary data and envisages a replacement of coordinates in geospatial data with geocodes, given that the community could agree on a standard method to generate geocodes.
 
 In parallel efforts [@Fekete1990; @Fekete1990a], and [@Goodchild1992] (and later also [@Lugo1995]) implemented the Quaternary Triangular Mesh (QTM) initially suggested by [@Dutton1984]. While [@Goodchild1992] used an octahedron as the initial regular solid, [@Fekete1990; @Fekete1990a] used an icosahedron. The resulting structures allow us to geospatially index every feature object on the planet. Contrary to [@Dutton1984], [@Fekete1990; @Fekete1990a; @Goodchild1992; @Lugo1995] tessellate each triangle into four triangles, allowing them to store each tessellated triangle with two bits. [@Goodchild1992] point out that the length of a trixel address (i.e., the index), which corresponds to the level/depth in the hierarchy, simultaneously indexes the size (or spatial uncertainty) of the indexed object.
 
@@ -133,16 +123,18 @@ All nodes of the [HTM]{acronym-label="HTM" acronym-form="singular+short"} quad-t
 [@Doan2016] emphasize the importance of indexes on the database performance as they govern data placement alignment and suggests [HTM]{acronym-label="HTM" acronym-form="singular+short"} as a promising approach.
 
 [@Rilee2016] advanced the HTM implementation from right-justified mapping to left-justified mapping: In a right-justified mapping, trixels that are in proximity but at different levels are mapped to separate
-locations on the number line[^left_justified]. Left justified mapping respects geometric containment by right-padding HTM binary codes with zeros. The level (in right-justified mapping implicitly given) is specified by the last 5 bits of the 64-bit integer. Therefore, co-located indexes are in similar index ranges regardless of the resolution. [@Kuo2017] extend the implementation with a temporal component and name the resulting universal geoscience data representation [STARE]{acronym-label="STARE" acronym-form="singular+short"}.
+locations on the number line. 
 
-[^left_justified]: trixel **S0123** has binary HTM code 1000011011 and thus HTM id 539, while trixel S01230 has the binary HTM code of 100001101100 and thus HTM id 2156. The ids are far from each other while the both trixels share the same first 4 digits in their name prefix (and thus are contained in each other)
+For example, the trixel **S0123** has binary HTM code `1 00 01 10 11` and thus HTM id 283, while the trixel **S01230** has the binary HTM code of `1 00 01 10 11 00` and thus HTM id 1132. The ids are far from each other while the both trixels share the same first 5 digits in their name prefix (and thus are contained in each other).
 
-> Frew note: This is important: it should be in the main text, not a footnote.
+Left justified mapping respects geometric containment by right-padding HTM binary codes with zeros. The level (in right-justified mapping implicitly given) is specified by the last digits of the name. In left justified mapping, the two trixels above would be named **S0123004** and **S01230005** (the last digits of the name (`4` and `5`) indicate level 4/5) which would translate to the binary HTM code of `1 00 01 10 11 00 00 100` and `1 00 01 10 11 00 00 101` and thus HTM ID 36228 and 36229. 
+
+Therefore, co-located indexes are in similar index ranges regardless of the resolution. [@Kuo2017] extend the implementation with a temporal component and name the resulting universal geoscience data representation the SpatioTemporal Resolution encoding STARE.
 
 
 # STARE Software collections
 
-## STARE library API and pystare
+## STARE library API and Pstare
 
 We implemented the left justified HTM encoding, extensively described in [@Rilee2021; @Rilee2020a; @Rilee2019; @Rilee2016; @Kuo2017 ] in the STARE C++[^STARE_base] base library, which stands at the base of the STARE software stack. Its functionality encompasses:
 
@@ -157,13 +149,9 @@ The STARE library has no file I/O capabilities, nor does it directly support geo
 
 In STARE, two notions of location exist: points and contiguous regions. A point is represented as a single SID, while a contiguous region is represented as a set of SIDs. A single SID simultaneously encodes a location and a level of uncertainty or resolution. A SID directly corresponds to a trixel, having three vertices, a center point, and a calculable area. The conversion of a point described as a single (latitude, longitude) pair is achieved by finding the trixel (at the specified quadfurcation level) that intersects the point. The lookup of the set of SIDs corresponding to a contiguous region is achieved by finding all trixels (of the specified quadfurcation level) with at least one vertex within the contiguous area.
 
-> Frew note: diagram would help here
+![A polygon (blue) and its representation as as set of trixels that cover it (yellow). A point (red star) is represented by a single trixel (red triangle) at a choosen STARE level.](images/C2/stare_polygon.png)
 
-STARE can look up SIDs for two types of contiguous regions: convex hulls and non-convex rings. For convex hulls, each edge of the hull is treated as a great circle (represented as its normal vector) that constrains the hull. A (trixel-) vertex (represented as an ECEF
-
-> ? what's "ECEF"?
-
-vector) is found to be inside a hull if it is inside all constraints. For a hull with *n* edges, *n* dot products are thus required to determine if a vertex is inside the hull. In a recent addition, STARE can now also look up the SIDs of (non-convex) rings. The algorithm is based on SphereGIS' [^20] spherical ray-casting point-in-polygon (more accurately: point-in-ring) tests which are adapted from [@Bevis1989; @Chamberlain2007]: Each of the ring's edges is a great circle segment, which is represented as triplets of great circles: One to represent the edge's line and direction, one for the 'left' terminator and one for the 'right' terminator. To test if a vertex is inside the ring, we cast a ray from the vertex to another random point of the sphere.
+STARE can look up SIDs for two types of contiguous regions: convex hulls and non-convex rings. For convex hulls, each edge of the hull is treated as a great circle (represented as its normal vector) that constrains the hull. A (trixel-) vertex (represented as an Earth-centered, Earth-fixed coordinate system (ECEF) vector) is found to be inside a hull if it is inside all constraints. For a hull with *n* edges, *n* dot products are thus required to determine if a vertex is inside the hull. In a recent addition, STARE can now also look up the SIDs of (non-convex) rings. The algorithm is based on SphereGIS' [^20] spherical ray-casting point-in-polygon (more accurately: point-in-ring) tests which are adapted from [@Bevis1989; @Chamberlain2007]: Each of the ring's edges is a great circle segment, which is represented as triplets of great circles: One to represent the edge's line and direction, one for the 'left' terminator and one for the 'right' terminator. To test if a vertex is inside the ring, we cast a ray from the vertex to another random point of the sphere.
 
 The ray itself, thereby, is a great circle. Since the great circle ray wraps around the sphere, it will intersect the ring's edges either not at all or an even number of times. We, therefore, cannot merely count the number of intersections but instead have to distinguish how many times a ray _enters_ the ring. We know a ray intersects an edge if the intersection of the ray with the edge's great circle is between the edge's terminators. The terminators are represented as great circles perpendicular to both the edge and the node. Since the ray does not have a direction, we determine if a ray *enters* (rather than exits) the ring by first determining on which side of the edge the vertex in question is (i.e., calculating the dot product of the edge's great circle norm vector and the vertex). If the point is on the side of the edge's hemisphere, the ray exits the ring when it crosses the edge. If a point is inside the ring, the ray will exit it more often than it enters it. For a ring with *n* edges, a maximum of *n* cross products and 3 *n* dot products must be performed to determine if a given vertex is within a ring.
 
@@ -179,19 +167,44 @@ For convenience, STARE can further look up the sets of SIDs that cover a circula
 ![Circular cover](images/C2/circular_cover.png)
 
 ## PySTARE
-While the C++ base library's API contains a minimum set of methods to perform STARE-based geospatial analysis, we recognize that geospatial analysis is often performed in an exploratory and ad-hoc manner in higher-level programming languages. Using SWIG, we therefore created Python bindings to a subset of the base libraries' API and exposed them in a Pythonic API in the PySTARE project [^30]
+While the C++ base library's API contains a minimum set of methods to perform STARE-based geospatial analysis, we recognize that geospatial analysis is often performed in an exploratory and ad-hoc manner in higher-level programming languages. Using SWIG, we therefore created Python bindings to a subset of the base libraries' API and exposed them in a Pythonic API in the `PySTARE` project [^30]
 
 [^30]: Github: [https://github.com/SpatioTemporal/pystare](https://github.com/SpatioTemporal/pystare); \newline Readthedocs: [https://pystare.readthedocs.io](https://pystare.readthedocs.io/en/latest/).
 
-Python became a convenient choice since it is commonly used and popular in geospatial analysis. Various Python libraries exist to read data formats commonly used in the geospatial analysis (e.g., HDF4, HDF5, NetCDF, SQL, CSV, shapefiles, geopackages) and to visualize geospatial data (matplotlib, geopandas). Pystare is intended to be the primary user inter interface to STARE. The development, therefore, focuses on complete documentation, tight adherence to PEP style guides, test-driven continuous integration, and a simple path for installation: We provide pre-compiled wheels distributed through PyPi, allowing pystare and all its dependencies to be installed with a single command.
+Python became a convenient choice since it is commonly used and popular in geospatial analysis. Various Python libraries exist to read data formats commonly used in the geospatial analysis (e.g., HDF4, HDF5, NetCDF, SQL, CSV, shapefiles, geopackages) and to visualize geospatial data (matplotlib, `GeoPandas`). `PySTARE` is intended to be the primary user inter interface to STARE. The development, therefore, focuses on complete documentation, tight adherence to PEP style guides, test-driven continuous integration, and a simple path for installation: We provide pre-compiled wheels distributed through PyPi, allowing `PySTARE` and all its dependencies to be installed with a single command.
 
-> Frew note: show a code sample here
+The following codesnippet demonstrates how points and rings are converted to SIDs and how the spatial relations between sets of SIDs can be evaluated with PySTARE.
+
+```python
+import numpy
+import pystare
+
+points_lats = [52.52063377345684, 48.86507804019062]
+points_lons = [13.40137845762151, 2.3357209301448676]
+points_sids = from_lonlat(lons, lats, level)
+			 
+
+ring_lats = [53.75702912049104, 54.98310415304803, 53.69393219666267, 
+ 		     50.128051662794235, 49.01778351500333, 47.62058197691181, 
+ 		     47.467645575544, 50.266337795607285, 51.10667409932158, 53.75702912049104]	
+ 		     
+ring_lons = [14.119686313542559, 9.921906365609118, 7.100424838905269, 
+			 6.043073357781111, 8.099278598674744, 7.466759067422231, 
+			 12.932626987365948, 12.240111118222558, 15.01699588385867, 14.119686313542559]
+			 
+sids_ring =  pystare.cover_from_ring(lat, lon, 5)
+
+
+
+pystare.intersects(cover, sids, method='binsearch')
+array[True, False]
+```
 
 
 ## STAREMaster and STARE sidecar files
-Currently, the locations of remote sensing observations are represented either as geolocated IFOV features, where each observation is associated with an Earth location (usually WGS84 longitude and latitude), or as gridded and projected fields of observations, in which the grid indices can be converted to geolocations. In order to perform STARE-based geospatial analysis on these data, the spatiotemporal index values for each observation or grid cell have to be calculated. Since these calculations involve expensive transcendental functions, the index values are calculated once and then stored.
+Currently, the locations of remote sensing observations are represented either as geolocated iFOV features, where each observation is associated with an Earth location (usually WGS84 longitude and latitude), or as gridded and projected fields of observations, in which the grid indices can be converted to geolocations. In order to perform STARE-based geospatial analysis on these data, the spatiotemporal index values for each observation or grid cell have to be calculated. Since these calculations involve expensive transcendental functions, the index values are calculated once and then stored.
 
-STAREMaster_py[^32] is a library and set of command line tools that allow looking up the STARE representation of common remote sensing products and storing those STARE representations into companion ("sidecar") files [@Gallagher2021a], which are intended to be read together with the data files during the analysis. STAREMaster_py is written to be easily extendable to allow ingestion of other products. It handles a subset of MODIS, VIIRS, and various microwave products. STAREMaster_py further includes convenience utilities to verify the integrity of local granule+sidecar collections (e.g, to detect missing sidecars.)
+`STAREMaster_py`[^32] is a library and set of command line tools that allow looking up the STARE representation of common remote sensing products and storing those STARE representations into companion ("sidecar") files [@Gallagher2021a], which are intended to be read together with the data files during the analysis. `STAREMaster_py` is written to be easily extendable to allow ingestion of other products. It handles a subset of MODIS, VIIRS, and various microwave products. `STAREMaster_py` further includes convenience utilities to verify the integrity of local granule+sidecar collections (e.g, to detect missing sidecars.)
 
 [^32]: Github: [https://github.com/SpatioTemporal/STAREmaster_py](https://github.com/SpatioTemporal/STAREmaster_py)
 
@@ -199,15 +212,13 @@ During the SID lookup for each observation, the STARE quadfurcation level of eac
 
 ![The geolocations of a MOD05 granule in blue and their corresponding resolution adapted trixel representations. Note the resolution change towards the center of the swath in the northeast direction.](images/C2/modis.png)
 
-STAREMaster_py can also create sidecar files for gridded products, such as MOD09GA.
+STAREMaster_py can also create sidecar files for gridded products, such as the MODIS level 3 surface reflectance product MOD09GA[^MOD09GA]. MOD09GA uses a sinusoidal projection and the MODIS sinusoidal grid divides the earth into 460 nonoverlaping "tiles" of approximate \SI{10}{\degree} x \SI{10}{\degree}. MODIS observations are spatially binned into those tiles. This makes accessing data for a given region simple: A user only once has to evaluate in which tiles cover the ROI and then request data for those tiles. Each tile contains 2400x2400 cells (at 500 m resolution) into which individual overservations are further binned. Even though the individual observations are irregularily spaced, the cells remain fixed. This means that all granules of the same tile can share a single sidecar file. Or in other words: Only one sidecar for each of the 460 tiles has to be created once.
 
-> Frew note: need to define what MOD09GA is, what a tile is, etc.
-
-Since all granules of the same tile use the same grid, they can share a single sidecar file.
+[^MOD09GA]: 10.5067/MODIS/MOD09GA.006
 
 Besides looking up the SIDs for each observation, STAREMaster_py also computes the set of SIDs that cover the footprint of the granule (the "STARE cover"). For granules that do not contain extent information, the STARE cover is computed by dissolving the set of the SIDs of the observations. "Dissolving" means that if a set contains four child nodes of the same parent, the four child nodes get replaced by the parent node.
 
-> Frew note: need some introduction to this code block
+The following conde snippet shows the command line interface of STAREMasters_py's `creat_sidecar_files.py` program. A user will either specify individual granules or a folder containing a collection of granules for which sidecars should be created. Alternatively, the user can specify a grid, such as a MODIS tile, for which a sidecar should be created. The user can further optionally specify where the sidecars should be create, provide a hint for what product the granules are, how many workers should be used in parallel, and if a sidecar archive should be created. The sidecar archive contains a list of all created sidecars. This can be particularily useful to avoid re-creation of sidecar files e.g. for a granule collection which is increasing over time.
 
 
 ```bash
@@ -243,24 +254,20 @@ options:
 
 
 
-STARE sidecar files are written out in netCDF format, containing the following variables
+STARE sidecar files are written out in netCDF format, containing the following variables:
 
-- The spatial index values for each observation or grid cell; one variable for each resolution.
-
-	> Frew note: what does "one variable for each resolution" mean?
-
+- The SID for each observation or grid cell. If a granule contains more than one resolution (such as the MODIS surface reflectance product MOD09, containing \SI{250}{\meter}, \SI{500}{\meter}, and \SI{1000}{\meter} resolution) one SID variable is create for each resolution.
 - The set of spatial index values that cover the footprint of the granule (STARE Cover)
-
 - Optionally, the latitudes and longitudes; one variable for each resolution
 
-Ultimately, we expect STARE sidecar files will be distributed along with the corresponding data, by the data producers. Until then, the generation of sidecar files will remain the first step a user must perform in the STARE-based data harmonization process. Since we recognize that the generation of sidecar files is a compute-intensive but parallelizable process, we implemented STAREMaster_py to natively support multiprocessing, either for calculating multiple SIDs in parallel for observations in a single granule, or for processing multiple granules in parallel. The multiprocessing is handled by the dask[^34] library. Currently, a local dask cluster is started, but STAREMaster_py can be adapted to use any (remote) dask cluster. To avoid (accidental) redundant creation of sidecar files, we added an archive option that will register all granules for which a sidecar has successfully been created. This is particularly helpful for growing collections, or when the sidecar creation of an extensive collection gets interrupted.
+Ultimately, we expect STARE sidecar files will be distributed along with the corresponding data, by the data producers. Until then, the generation of sidecar files will remain the first step a user must perform in the STARE-based data harmonization process. Since we recognize that the generation of sidecar files is a compute-intensive but parallelizable process, we implemented `STAREMaster_py` to natively support multiprocessing, either for calculating multiple SIDs in parallel for observations in a single granule, or for processing multiple granules in parallel. The multiprocessing is handled by the dask[^34] library. Currently, a local dask cluster is started, but `STAREMaster_py` can be adapted to use any (remote) dask cluster. To avoid (accidental) redundant creation of sidecar files, we added an archive option that will register all granules for which a sidecar has successfully been created. This is particularly helpful for growing collections, or when the sidecar creation of an extensive collection gets interrupted.
 
 [^34]: [https://www.dask.org/](https://www.dask.org/)
 
 
 ## STAREPandas
 
-STAREPandas[^35] is a python library that provides a high-level interface to STARE and a unified data representation. It allows users to perform STARE-based spatial operations and related tests on sets of features that would otherwise require more extensive tooling; e.g., by using a STARE-extended spatial database or geographic information system (GIS).
+STAREPandas[^35] is a Python library that provides a high-level interface to STARE and a unified data representation. It allows users to perform STARE-based spatial operations and related tests on sets of features that would otherwise require more extensive tooling; e.g., by using a STARE-extended spatial database or geographic information system (GIS).
 
 [^35]: [https://github.com/SpatioTemporal/STAREPandas](https://github.com/SpatioTemporal/STAREPandas); [https://starepandas.readthedocs.io](https://starepandas.readthedocs.io)
 
@@ -280,24 +287,22 @@ STAREPandas provides a uniform data structure to hold any geospatial data type. 
 
 [^36]: [geopandas.org](https://geopandas.org/); [https://github.com/geopandas/geopandas](https://github.com/geopandas/geopandas)
 
-In contrast to GeoPandas' GeoDataFrames, where geometries are represented as simple features ([ISO 19125-1:2004](https://www.iso.org/standard/40114.html)), STAREPandas' STAREDataFrames represent geometries as SIDs, corresponding to trixels of variable sizes and resolutions. Polygons are represented as sets of SIDs whose corresponding trixels cover the polygon, while points are represented as individual trixels at the HTM tree's leaf resolution. Single SIDs represent grid cells and features such as sensor fields-of-view (FOVs) at a quadfurcation level corresponding to the cell's/IFOV's spatial extent/area.
+In contrast to GeoPandas' `GeoDataFrames`, where geometries are represented as simple features ([ISO 19125-1:2004](https://www.iso.org/standard/40114.html)), STAREPandas' `STAREDataFrames` represent geometries as SIDs, corresponding to trixels of variable sizes and resolutions. Polygons are represented as sets of SIDs whose corresponding trixels cover the polygon, while points are represented as individual trixels at the HTM tree's leaf resolution. Single SIDs represent grid cells and features such as sensor fields-of-view (FOVs) at a quadfurcation level corresponding to the cell's/IFOV's spatial extent/area.
 
-A STAREDataFrame has one row per feature and one column per attribute. The STAREDataFrame has the special SID column, which holds the STARE representation of the location and on which all STARE-based geospatial operations are executed.
+A `STAREDataFrame` has one row per feature and one column per attribute. The `STAREDataFrame` has the special SID column, which holds the STARE representation of the location and on which all STARE-based geospatial operations are executed.
 
 ### Conversions and I/O
 
 #### Read feature data
-Using GeoPandas' I/O capabilities, STAREPandas can read most vector-based data formats. STAREPandas can then convert between Geopandas' internal simple feature representation of geometries such as points, polygons, and multipolygons and STARE's spatial SID representations. While PySTARE has methods to convert points, convex hulls, and rings to SIDs, it cannot handle more complex geometries such as "swiss cheese" polygons (polygons with holes) or multipart geometries (which may be discontiguous). STAREPandas adds those capabilities.
+Using GeoPandas' I/O capabilities, STAREPandas can read most vector-based data formats. `STAREPandas` can then convert between GeoPandas' internal simple feature representation of geometries such as points, polygons, and multipolygons and STARE's spatial SID representations. While PySTARE has methods to convert points, convex hulls, and rings to SIDs, it cannot handle more complex geometries such as "swiss cheese" polygons (polygons with holes) or multipart geometries (which may be discontiguous). STAREPandas adds those capabilities.
 
 [Reference: make_sids()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.read_geotiff.html#starepandas.make_sids)
 
 Since GeoPandas can read and write most geospatial feature data formats, STAREPandas is a convenient way of converting geospatial feature data (e.g., shapefiles) to STARE representations.
 
-![The outline of the Republic of South Africa with Lesotho as a hole](images/C2/lesotho.png)
+![STAREPandas handles polygons with innner rings: The figure displays outline of the Republic of South Africa with Lesotho as a hole in blue and the trixel representation of RSA in yellow.](images/C2/lesotho.png)
 
-![Discontinuous north America](images/C2/n_america.png)
-
-> Frew note: these figs need captions
+![STAREPandas can handle discontinuous ("multi") polygons. The figure displays the outlines of north and central American countries and Greenland in blue and their trixel representations in yellow. Note how e.g. discontinous USA is represented.](images/C2/n_america.png)
 
 #### Read Raster Data
 
@@ -305,14 +310,12 @@ STAREPandas extends GeoPandas' capabilities to load raster data from GeoTIFFs. S
 
 [Reference: read_geotiff()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.read_geotiff.html#starepandas.read_geotiff)
 
+![Conversion of a multi-band GeoTIFF to a `STAREDataframe`. The different bands get converted into columns of the `STAREDataFrame`](images/C2/raster_to_df.png)
 
-![Conversion of a multi-band GeoTIFF to a STARE dataframe](images/C2/raster_to_df.png)
-
-> Frew note: put sample SIDs in the SID column
 
 ### Read Granules
 
-While fundamentally the same data structures are used in disseminating remotely sensed data (points, arrays), data products often idiosyncratically represent differences in orbits, viewing strategies, spatial and temporal resolutions, etc. [@Kuo2017]. As a result, each sensor's product requires specific domain knowledge and tailor-made tools to load and interpret the data, and especially the location information. To facilitate working with remote sensing data STAREPandas adds methods to load selected gridded remote sensing data and geolocated swath data into a STAREDataFrame. The STARE representations can either be generated on-the-fly during loading or read from a pre-generated STARE "sidecar" file. The read_granules() facilities are designed to be easily extensible to support additional products.
+While fundamentally the same data structures are used in disseminating remotely sensed data (points, arrays), data products often idiosyncratically represent differences in orbits, viewing strategies, spatial and temporal resolutions, etc. [@Kuo2017]. As a result, each sensor's product requires specific domain knowledge and tailor-made tools to load and interpret the data, and especially the location information. To facilitate working with remote sensing data STAREPandas adds methods to load selected gridded remote sensing data and geolocated swath data into a `STAREDataFrame`. The STARE representations can either be generated on-the-fly during loading or read from a pre-generated STARE "sidecar" file. The read_granules() facilities are designed to be easily extensible to support additional products.
 
 [Reference: read_granule()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.read_granule.html)
 
@@ -320,18 +323,15 @@ A user can choose to add the WGS84 latitudes and longitudes, as well as the arra
 
 [Reference: to_array()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.to_array.html).
 
-Similarly to reading raster data, all variables (in hdf4 terms: scientific datasets) of the granule will be read and added as attributes for each feature. For granules containing multiple resolutions, a user chooses a single resolution to be read at a time.
-
-> Frew note: does this mean a single resolution per data frame?
-
+Similarly to reading raster data, all variables (in hdf4 terms: scientific datasets) of the granule will be read and added as attributes for each feature. For granules containing multiple resolutions, a user chooses a single resolution to be read at a time. This means that each resolution is read in separately into a separate `STAREDataFrame`.
 
 #### Read Folders / Create Catalogs
-Maintaining, searching, and subsetting large local collections of granules can become a challenge. We thus implemented a method to catalog local collections to perform a spatial searches and subsetting using STAREPandas and STARE sidecar files. The catalogs contain one row per granule, and each row contains the path of the granule and the sidecar, the granule acquisition timestamp, and the stare representation of the granule's cover (as read from the sidecar file). Creating such a catalog dataframe for extensive local collections of granules is helpful in quickly identifying granules that intersect a potentially complex ROI or finding multiple granules that intersect each other.
+Maintaining, searching, and subsetting large local collections of granules can become a challenge. We thus implemented a method to catalog local collections to perform a spatial searches and subsetting using `STAREPandas` and STARE sidecar files. The catalogs contain one row per granule, and each row contains the path of the granule and the sidecar, the granule acquisition timestamp, and the stare representation of the granule's cover (as read from the sidecar file). Creating such a catalog dataframe for extensive local collections of granules is helpful in quickly identifying granules that intersect a potentially complex ROI or finding multiple granules that intersect each other.
 
 [Reference: folder2catalog()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.read_granule.html)
 
 #### Persisting STAREDataFrames
-Like any other python object, STAREDataFrames can be serialized and stored as pickles or HDF5 files using the inherited pandas methods. STAREPandas additionally extends pandas database functionality to read and write to/from SQLite, Postgresql, and SciDB. The STARE software collection includes STARE extensions to all three databases (STARELite[^STARELite], PostSTARE[^PostSTARE], SciDB-STARE[^SciDB-STARE]). STAREPandas can function as a convenient pivot format for loading data into STARE-enabled databases.
+Like any other Python object, `STAREDataFrames` can be serialized and stored as pickles or HDF5 files using the inherited Pandas methods. STAREPandas additionally extends Pandas' database functionality to read and write to/from SQLite, Postgresql, and SciDB. The STARE software collection includes STARE extensions to all three databases (STARELite[^STARELite], PostSTARE[^PostSTARE], SciDB-STARE[^SciDB-STARE]). STAREPandas can function as a convenient pivot format for loading data into STARE-enabled databases.
 
 [^STARELite]: [https://github.com/SpatioTemporal/STARELite](https://github.com/SpatioTemporal/STARELite)
 
@@ -339,30 +339,13 @@ Like any other python object, STAREDataFrames can be serialized and stored as pi
 
 [^SciDB-STARE]: [https://github.com/NiklasPhabian/SciDB-STARE](https://github.com/NiklasPhabian/SciDB-STARE)
 
-STAREPandas additionally implements its own storage mechanism based on STARE-PODS (Parallel optimized data structure). In order to write a STAREDataFrame into a PODS, it is grouped at this predefined level
-
-> Frew note: what "predefined level"?
-
-by evaluating the SID prefix. E.g., if the PODS is at level 4,
-
-> Frew note: what does "at level 4" mean?
-
-the dataframe is grouped according to the first 8 bits of each SID.
-
-> Frew note: what's the relationship between level 4 and the first 8 bits?
-
-The individual groups are then written out
-
-> Frew note: in parallel?
-
-into the corresponding PODs.
+STAREPandas additionally implements its own storage mechanism based on STARE-PODS (Parallel optimized data structure). A PODS spatially shards data at a user-defined HTM quadfurcation level. Each shard is a trixel at this user-defined quafuraction level and contains only data that lie within this trixel. To write a `STAREDataFrame` into a PODS, it is first split into shards. Each row of a single shard shares the same SID prefix. E.g. if a PODS is created at quafurcation level 4, all data in a single shard are contained with the same level 4 trixel. Thus all SIDs within the same shard share the same first 8 bits. The individual shards are then written out to files.
 
 ![Illustration of how STAREDataframes are split geospatial bins, simply by grouping by the SID prefix.](images/C2/df2pod.png)
 
 [Reference: write_pods()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.write_pods.html)
 
-
-A PODS can, in turn, be read back into STAREDataFrames using STAREPandas read_pods() method.
+A PODS can, in turn, be read back into a `STAREDataFrame` using STAREPandas' `read_pods()` method.
 
 [Reference: read_pods()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.read_pods.html)
 
@@ -370,36 +353,33 @@ A PODS can, in turn, be read back into STAREDataFrames using STAREPandas read_po
 ### STARE-based spatial operations
 STAREPandas allows us to perform the STARE-based geospatial relation tests 'intersects' and 'disjoint.' Those functionalities enable STARE-based spatial subsetting and spatial joins, which are common bottlenecks when working with large collections of irregularly spaced data. They function analogously to GeoPandas [intersects()](https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoSeries.intersects.html) and [disjoint()](https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoSeries.disjoint.html) methods. The relation tests are wrapped in the STARE-based join method [stare_join()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.stare_join.html?highlight=join#starepandas.stare_join), which can spatially join two dataframes.
 
+References: [stare_intersects()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.stare_intersects.html), [stare_disjoint()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.stare_disjoint.html)
 
-References: [stare_intersects()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.stare_intersects.html),
-
-[stare_disjoint()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.stare_disjoint.html)
-
-
+The following code snippets demonstrates how a `STAREDataFrame` can be bootstrapped from a `GeoDataFrame` and how STARE-based intersects tests can be performed. The data is visualized in figure 15.
 
 ```python
+
+import geopandas
 import starepandas
 
-germany =  [4251398048237748227, 4269412446747230211,
-            4278419646001971203, 4539628424389459971,
-            4548635623644200963, 4566650022153682947]
+world = geopandas.read_file(geopandas.datasets.get_path("naturalearth_lowres"))
+n_america = world[world.continent=='North America'].reset_index()
+n_america = starepandas.STAREDataFrame(n_america)
+n_america = n_america.set_sids(n_america.make_sids(level=9))
 
-cities =   {'name': ['berlin', 'madrid'],
-            'sid': [4258121269174388239, 4288120002905386575]}
+santa_barbara_sid = pystare.from_lonlat([-119.81100397568609], 
+										[34.44687326105255], 
+										level=15)
 
-cities = starepandas.STAREDataFrame(cities, sids='sid')
-cities.stare_intersects(germany)
-0 True
-1 False
-dtype: bool
+n_america[n_america.stare_intersects(santa_barbara_sid)].name
+United States of America
 ```
 
-> Frew note: this would be helped by a plot of germany and cities
-
-Illustrative uses cases are:
+![North America and Santa Barbara (red trixel) in its trixel representation.](images/C2/starepandas_intersects.png)
 
 > Frew note: stopped here 2022-10-21
 
+Illustrative uses cases are:
 - Determining the overlap of complex geographic regions
 - Finding granule footprints that intersect an ROI (i.e., searching for granules)
 - Spatially associating data from heterogeneous collections of observations
@@ -425,7 +405,7 @@ STAREPandas also provides APIs to query and manipulate the SID level:
 - [to_stare_resolution()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.to_stare_resolution.html) lets the user set the STARE resolution. The user can choose if the location bits beyond the resolution should be cleared (set to 0) or not.
 - [clear_to_resolution()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.clear_to_resolution.html) clears the location bits beyond the resolution.
 
-In pandas dataframes, map-reduce is carried out by using the [grouby()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html) method to map/group rows and then applying an aggregate function to the groups to reduce them. Since conventional aggregate functions (mean, max, sum) cannot be applied to (simple feature) geometries, GeoPandas implements the abstracted map-reduce function [dissolve()](https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.dissolve.html), which will yield a GeoDataframe in which geometries are aggregated using a spatial [unary_union](https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoSeries.unary_union.html). Seminally, STAREPandas implements the STARE-based map-reduce function [stare_dissolve()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.stare_dissolve.html) that will aggregate SIDs using a stare_union. The stare_union on a collection of SIDs is created by taking the set of those SIDs and then recursively replacing any four SIDs in that set that shares the same parent node with the parent node. Note: Both geopandas' dissolve and starepandas' stare_dissolve can dissolve by 'None,' yielding a dataframe dissolved into a single feature, unionizing all geometries/SIDs.
+In Pandas dataframes, map-reduce is carried out by using the [grouby()](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.groupby.html) method to map/group rows and then applying an aggregate function to the groups to reduce them. Since conventional aggregate functions (mean, max, sum) cannot be applied to (simple feature) geometries, GeoPandas implements the abstracted map-reduce function [dissolve()](https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoDataFrame.dissolve.html), which will yield a `GeoDataframe` in which geometries are aggregated using a spatial [unary_union](https://geopandas.org/en/stable/docs/reference/api/geopandas.GeoSeries.unary_union.html). Seminally, STAREPandas implements the STARE-based map-reduce function [stare_dissolve()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.stare_dissolve.html) that will aggregate SIDs using a stare_union. The stare_union on a collection of SIDs is created by taking the set of those SIDs and then recursively replacing any four SIDs in that set that shares the same parent node with the parent node. Note: Both GeoPandas' `dissolve()` and STAREPandas' `stare_dissolve()` can dissolve by `None`, yielding a dataframe dissolved into a single feature, unionizing all geometries/SIDs.
 
 ![Visualization of a dataframe with a feature per country (colored) and the dissolved representation (black).](images/C2/dissolve.png)
 
@@ -435,19 +415,19 @@ Finally, STAREPandas implements a [stare_intersection()](https://starepandas.rea
 
 ### Plotting
 
-Using STARE's ability to look up the trixel vertices for SIDs, STAREPandas converts SIDs and collections of SIDs to simple feature geometries. A feature with a single SID, e.g., representing an IFOV or a point, will be converted into a single triangular simple feature polygon, while features with a set of SIDs, e.g., representing a cover, are converted into a simple feature multipolyon of trixels. The STAREDataFrame method [make_trixels()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.make_trixels.html) generates a geopandas GeoSeries of the same length of the dataframe with each row containing the simple feature geometry of the trixels. This GeoSeries may be attached back to the DataFrame. STAREPandas can then use GeoPandas' rich plotting library to plot the trixels.
+Using STARE's ability to look up the trixel vertices for SIDs, STAREPandas converts SIDs and collections of SIDs to simple feature geometries. A feature with a single SID, e.g., representing an IFOV or a point, will be converted into a single triangular simple feature polygon, while features with a set of SIDs, e.g., representing a cover, are converted into a simple feature multipolyon of trixels. The `STAREDataFrame` method [make_trixels()](https://starepandas.readthedocs.io/en/latest/docs/reference/api/starepandas.STAREDataFrame.make_trixels.html) generates a GeoPandas `GeoSeries` of the same length of the dataframe with each row containing the simple feature geometry of the trixels. This `GeoSeries` may be attached back to the `GeoDataFrame`. STAREPandas can then use `GeoPandas'` rich plotting library to plot the trixels.
 
 The ability to plot features in trixel representation has proven immensely helpful in exploring and communicating STARE-based geospatial analysis.
 
 ### Parallelized /dask
-Akin to [dask-geopandas](https://github.com/geopandas/dask-geopandas), STAREPandas uses dask to parallelize performance bottleneck functions. We implemented parallelized methods for spatial coincidence tests (intersects, disjoint), for the lookup of SIDs from latitudes and longitudes and shapely objects, and the generation of trixels from SIDs.
+Akin to [dask-geopandas](https://github.com/geopandas/dask-geopandas), STAREPandas uses Dask to parallelize performance bottleneck functions. We implemented parallelized methods for spatial coincidence tests (intersects, disjoint), for the lookup of SIDs from latitudes and longitudes and shapely objects, and the generation of trixels from SIDs.
 
 ## STARELite and PostSTARE
 The SDSS SkyServer [@Szalay2002; @Thakar2004; @Thakar2003; @Budavari2010] is based on an MS SQL server extended to use HTM as spatial indices. [@Kondor2014] adapt the concept to perform the classification of geospatial (rather than celestial) objects. Similarly, we created extensions for PostgreSQL and SQLite to utilize STARE.
 
 STARELite[^STARELite] and PostSTARE[^PostSTARE] are SQLite and PostgreSQL STARE extensions allowing us to perform a subset of STARE-based geospatial operations within the relational databases SQLite and PostgreSQL. STARELite/PostSTARE allow converting conventional representations of locations specified as latitude and longitude table columns or as *WKB blobs* (used by SpatiaLite, GeoPackages, and PostGIS) of points or polygons to their STARE representation. They can further perform spatial relation tests, allowing STARE-based spatial joins of tables.
 
-Ample use of STARELite is cataloging volumes of remote sensing granules that researchers often possess in their local storage. This application uses STARELite to determine subsets of granules intersecting arbitrary ROIs. Further, STARELite can be used for the inverse search problem: Determining all spatially coincident granules of an individual granule. STARELite and STAREMaster may leverage other components of the STARE ecosystem; namely STARE sidecars, which hold the trixel index values of each IFOV and a set of trixels representing the cover of each granule; STAREMaster, which is used to generate STARE sidecar files; and STARPandas, used to load data into the databases.
+Ample use of STARELite is cataloging volumes of remote sensing granules that researchers often possess in their local storage. This application uses STARELite to determine subsets of granules intersecting arbitrary ROIs. Further, STARELite can be used for the inverse search problem: Determining all spatially coincident granules of an individual granule. STARELite and STAREMaster may leverage other components of the STARE ecosystem; namely STARE sidecars, which hold the trixel index values of each IFOV and a set of trixels representing the cover of each granule; STAREMaster, which is used to generate STARE sidecar files; and STAREPandas, used to load data into the databases.
 
 
 
@@ -457,7 +437,7 @@ STARE-PODS (Parallel optimized data structure) [@2021AGUFMIN32A; @Rilee2022] is 
 
 ![Schematic concept of STAREPods. Each observation gets binned into a POD. A POD is a trixel of a predefined STARE level, which may be resembled, e.g., a folder.](images/C2/STAREPods.png)
 
-To implement STARE-PODS, we first generate STARE indices for all observations of all granules (using STAREMaster). If we decide, e.g., to use quadfurcation level 4 for partitioning the data, we then repackage data elements within each quadfurcation 4 trixel into a file as a STARE chunk. If we use a directory structure to implement the STARE hierarchy, all spatially close chunks and thus observations will be in the same respective level 4 directory. In cloud object stores, all chunks would share the same POD-name prefix. Finding the overlaps between two or more datasets thus becomes trivial and scalable. Since our STARE API can convert arbitrary (spherical) polygons into STARE covers at any given quadfurcation level, finding overlaps between an ROI and any STARE chunk is also trivial.
+To implement STARE-PODS, we first generate STARE indices for all observations of all granules (using `STAREMaster`). If we decide, e.g., to use quadfurcation level 4 for partitioning the data, we then repackage data elements within each quadfurcation 4 trixel into a file as a STARE chunk. If we use a directory structure to implement the STARE hierarchy, all spatially close chunks and thus observations will be in the same respective level 4 directory. In cloud object stores, all chunks would share the same POD-name prefix. Finding the overlaps between two or more datasets thus becomes trivial and scalable. Since our STARE API can convert arbitrary (spherical) polygons into STARE covers at any given quadfurcation level, finding overlaps between an ROI and any STARE chunk is also trivial.
 
 ![At level 4, there are 2048 PODs, each with a size of about 640 km](images/C2/STAREPods_l4.png)
 
@@ -471,20 +451,20 @@ For convenience, we built a catalog on top of the PODS. The catalog is a STARELi
 
 In a testing environment, we retrieved one month's worth of XCAL SSMIS data from F16, F17, and F18 for the period of 2021-01-10 to 2021-02-09; a total of 1314 granules. We created STARE sidecar files for each of those granules. Each sidecar contains the SID of each observation/iFOV/pixel of the granule as well as a set of SIDs representing the spatial coverage of the entire granule.
 
-We then loaded the collection of granule/sidecar pairs into a level 4 PODS, using STAREPods_py. A level 4 PODS shards data at the 4th STARE quadfurcation level. Considering the initial solid with 8 faces, this means that a level 4 PODS has 2048 PODs. The 1314 original granules are split into 3,675,403 chunks distributed over the 2048 PODs. On average, each POD contains about 1800 chunks, though their distribution varies. The size of the chunks varies between 10 kB to 100 kB.  Each chunk is a pickled STAREDataFrame containing the latitude, longitude, timestamp, SID, as well as the measurements for each observation. 
+We then loaded the collection of granule/sidecar pairs into a level 4 PODS, using STAREPods_py. A level 4 PODS shards data at the 4th STARE quadfurcation level. Considering the initial solid with 8 faces, this means that a level 4 PODS has 2048 PODs. The 1314 original granules are split into 3,675,403 chunks distributed over the 2048 PODs. On average, each POD contains about 1800 chunks, though their distribution varies. The size of the chunks varies between 10 kB to 100 kB.  Each chunk is a pickled `STAREDataFrame` containing the latitude, longitude, timestamp, SID, as well as the measurements for each observation. 
 
 As a benchmarking test, we evaluated the performance of loading all SSMIS data that intersects a complex spatiotemporal bounding box. As the complex spatiotemporal bounding box, we used the extent of a precipitation event over the south western US lasting from the 2021-01-24 until the 2021-01-27. Our testing environment is a m5.x4large AWS instance with both the granules and sidecars as well as the PODS residing on a flexFS volume.
 
 ![The spatial extent of a precipitation event lasting from 2021-01-24 to 2021-01-27. Note the complexity of the shape around its southern edges.](images/C2/pod_event_full.png)
 
-In the conventional approach, we utilize the granule naming convention to temporarily subset the granules to the temporal bounding box. This reduces the number of granules from 1314 to 170 candidate granules. We then iteratively read the STARE cover from each sidecar of the candidate granules and verify if the granule spatially intersects our ROI. If not, we discard the candidate. If yes, we load the entire granule into a STAREDataFrame and spatially subset it to the ROI (using STARE). Out of the 170 candidate granules, 70 granules spatially intersect the ROI. Finally, we concatenate all subsetted granule DataFrames. The whole process takes a total time of 46.2 s ± 102 ms (mean ± std. dev. of 10 runs) on our testing server.
+In the conventional approach, we utilize the granule naming convention to temporarily subset the granules to the temporal bounding box. This reduces the number of granules from 1314 to 170 candidate granules. We then iteratively read the STARE cover from each sidecar of the candidate granules and verify if the granule spatially intersects our ROI. If not, we discard the candidate. If yes, we load the entire granule into a `STAREDataFrame` and spatially subset it to the ROI (using STARE). Out of the 170 candidate granules, 70 granules spatially intersect the ROI. Finally, we concatenate all subsetted granule dataframe. The whole process takes a total time of 46.2 s ± 102 ms (mean ± std. dev. of 10 runs) on our testing server.
 
   
 ![The filename of an SSMIS XCAL granule. Highlighted is the portion of the filename indicating the timestamp of the granule.](images/C2/pod_filename.png)  
 
 We extended the conventional approach by making use of a granule catalog. A granule catalog is a database containing the paths of granules and their sidecars, the tart and beginning times of the granules as well as the spatial coverages of the granules. Using the catalog, we can immediately query for the granules that intersect the spatiotemporal ROI. We can then only load those granules and spatially subset them to our ROI. Using the catalog, we slightly improve the runtime to 44.1 s ± 103 ms (mean ± std. dev. of 10 runs)
 
-In the STAREPods approach, we first find all the PODs that may contain chunks intersecting the ROI. We can simply achieve this by converting the SIDs of STARE cover of our ROI to level 4 (the level of our PODS) and then take the set of those SIDs. Only 29 of the 2048 PODs do intersect our ROI. We then utilize STAREPandas’ read_pods() function to load the chunks into a single STAREDataFrame. Read_pods() iterates through the candidate PODs and loads all chunks whose name contains a specified pattern. Again, we utilize the granule naming convention and specify a pattern corresponding to our temporal bounding box. We finally subset the loaded STAREDataFrame to our ROI since it contains observations that coincide with the ROI at level 4, but not at the ROI at its original resolution (level 9). The whole process takes a total time of 2 s ± 15.8 ms (mean ± std. dev. of 10 runs) on our testing server, bringing us a speedup of over 20x compared to the conventional approach.
+In the STAREPods approach, we first find all the PODs that may contain chunks intersecting the ROI. We can simply achieve this by converting the SIDs of STARE cover of our ROI to level 4 (the level of our PODS) and then take the set of those SIDs. Only 29 of the 2048 PODs do intersect our ROI. We then utilize `STAREPandas’` `read_pods()` function to load the chunks into a single `STAREDataFrame`.  The function `read_pods()` iterates through the candidate PODs and loads all chunks whose name contains a specified pattern. Again, we utilize the granule naming convention and specify a pattern corresponding to our temporal bounding box. We finally subset the loaded `STAREDataFrame` to our ROI since it contains observations that coincide with the ROI at level 4, but not at the ROI at its original resolution (level 9). The whole process takes a total time of 2 s ± 15.8 ms (mean ± std. dev. of 10 runs) on our testing server, bringing us a speedup of over 20x compared to the conventional approach.
 
 ![The spatial extent of the precipitation event at STARE quafuraction level 4. There are 29 trixels (and thus PODs) covering the event.](images/C2/pod_event_4.png)
  
@@ -553,7 +533,7 @@ In many geospatial data analyses, researchers are interested in analyzing data t
 
 Both the extraction of such events from data, as well as the representation of the spatiotemporal volumes, is however challenging. For gridded data, time slices can be stacked to a cube. By postulating that the spatiotemporal extents of moving events are contiguous volumes (i.e., an ordered set of spatial covers that are connected in time, having a spatial overlap between each subsequent time step), discrete events can then be identified and labeled by performing (3D) connected component analysis. The resulting data structure, however, is a three-dimensional cube of labels. Neither the extraction of statistical information from this data structure nor spatiotemporally joining this structure with other data is trivial.
 
-We implemented a STARE-based moving object database approach to levitate this issue, as described by [@Kuo2021; @Rilee2022]. The moving object database represents each time step of each event as an individual feature of a STAREDataFrame. The spatial extent of each feature is represented as a STARE cover (i.e., a set of SIDs). This allows us to easily associate events with other spatial data, such as observations from other instruments, or static spatial objects, such as political boundaries or watersheds. Further, performing statistical analysis on the events is simplified.
+We implemented a STARE-based moving object database approach to levitate this issue, as described by [@Kuo2021; @Rilee2022]. The moving object database represents each time step of each event as an individual feature of a `STAREDataFrame`. The spatial extent of each feature is represented as a STARE cover (i.e., a set of SIDs). This allows us to easily associate events with other spatial data, such as observations from other instruments, or static spatial objects, such as political boundaries or watersheds. Further, performing statistical analysis on the events is simplified.
 
 In our demonstration, we identified discrete (i.e., spatiotemporally contiguous) precipitation events from IMERG[^IMERG] data (IMERG is a half-hourly global precipitation-rate product with 0.1° grid resolution). We then stored the events in our moving object database and spatially joined the database with political boundaries to extract statistical information about the precipitation. We also extracted basic statistics to describe the precipitation event.
 
@@ -649,7 +629,7 @@ Like STARE, S2geometry[^15] is a project attempting to increase the harmony of g
 
 [^16]: [https://s2geometry.io/devguide/s2cell_hierarchy](https://s2geometry.io/devguide/s2cell_hierarchy)
 
-Like STARE, S2geometry provides python bindings to the API. However, a significant boilerplate has to be created to perform geospatial analysis using those bindings. On the contrary, in our development of STARE software collection, we focused on minimizing the effort to perform remote sensing data analysis by adding support to ingest legacy data and mimicking well-known APIs.
+Like STARE, S2geometry provides Python bindings to the API. However, a significant boilerplate has to be created to perform geospatial analysis using those bindings. On the contrary, in our development of STARE software collection, we focused on minimizing the effort to perform remote sensing data analysis by adding support to ingest legacy data and mimicking well-known APIs.
 
 
 # Conclusion
