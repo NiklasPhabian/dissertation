@@ -485,16 +485,11 @@ Each of the three approaches resulted in loading 225,539 individual SSMIS observ
 
 # Application examples
 ## Night lights
-> “Consider a certain night in August. Princess Leigh-Cheri was gazing out of her attic window. The moon was full. The moon was so bloated it was about to tip over. Imagine awakening to find the moon flat on its face on the bathroom floor, like the late Elvis Presley, poisoned by banana splits. It was a moon that could stir wild passions in a moo cow. A moon that could bring out the devil in a bunny rabbit. A moon that could turn lug nuts into moonstones, turn Little Red Riding Hood into the big bad wolf. For more than an hour, Leigh-Cheri stared into the mandala of the sky.  “Does the moon have a purpose?” she inquired of Prince Charming. Prince Charming pretended that she had asked a silly question. Perhaps she had. The same query put to the Remington SL3 elicited this response:
->
-> Albert Camus wrote that the only serious question is whether to kill yourself or not. Tom Robbins wrote that the only serious question is whether time has a beginning and an end. Camus clearly got up on the wrong side of bed, and Robbins must have forgotten to set the alarm.
-> There is only one serious question. And that is: Who knows how to make love stay?
->
-> Answer me that and I will tell you whether or not to kill yourself. Answer me that and I will ease your mind about the beginning and the end of time. Answer me that and I will reveal to you the purpose of the moon”
+<!-- > “Consider a certain night in August. Princess Leigh-Cheri was gazing out of her attic window. The moon was full. The moon was so bloated it was about to tip over. Imagine awakening to find the moon flat on its face on the bathroom floor, like the late Elvis Presley, poisoned by banana splits. It was a moon that could stir wild passions in a moo cow. A moon that could bring out the devil in a bunny rabbit. A moon that could turn lug nuts into moonstones, turn Little Red Riding Hood into the big bad wolf. For more than an hour, Leigh-Cheri stared into the mandala of the sky.  “Does the moon have a purpose?” she inquired of Prince Charming. Prince Charming pretended that she had asked a silly question. Perhaps she had. The same query put to the Remington SL3 elicited this response: Albert Camus wrote that the only serious question is whether to kill yourself or not. Tom Robbins wrote that the only serious question is whether time has a beginning and an end. Camus clearly got up on the wrong side of bed, and Robbins must have forgotten to set the alarm. There is only one serious question. And that is: Who knows how to make love stay? Answer me that and I will tell you whether or not to kill yourself. Answer me that and I will ease your mind about the beginning and the end of time. Answer me that and I will reveal to you the purpose of the moon” -->
 
+>  "For more than an hour, Leigh-Cheri stared into the mandala of the sky.  'Does the moon have a purpose?' she inquired of Prince Charming. Prince Charming pretended that she had asked a silly question. Perhaps she had."
+> 
 >  From Still Life with Woodpecker (1980), Tom Robbins
-
-> Frew note: great quote, but leave it out ☹️
 
 [@Kondor2014] demonstrated how an HTM-enabled relational database made it possible spatially to classify billions of geolocated tweets into complex political boundaries. The problem can be generalized as a challenge to associate extensive collections of irregularly spaced observations/events (the tweets) with complex (i.e., discontinuous and/or containing holes) geographic regions.
 
