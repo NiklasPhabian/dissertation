@@ -1,4 +1,4 @@
-SOURCES := C1_OCCUR.md C2_Software.md C3_Spires.md
+SOURCES := C0_Introduction.md C1_OCCUR.md C2_Software.md C3_Spires.md
 
 PDFS = $(SOURCES:.md=.pdf) 
 

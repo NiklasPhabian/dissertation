@@ -13,47 +13,79 @@ header-includes:
     - \usepackage{siunitx}
     - \DeclareSIUnit\month{month}
     - \usepackage{lmodern}
+    - \usepackage[acronym]{glossaries}    
+    - \include{context/acronyms.tex}
 ---
 
-# Abstract
+# Abstract {-}
+Gridding of remote sensing products discretize space and thus makes the evaluation of geospatial coincidence trivial. This greatly simplifies the development of algorithms that require multiple observations of a single location as their input and further allows for easy algorithm accuracy evaluation against ground truth data. However, the loss in location precision leads to unnecessary noise in algorithm outputs. We demonstrate how the discretization of MODIS surface reflectance data leads to spatial mismatching that propagate to inaccuracies in the estimation of fractional snow cover area (fSCA) from the SPIReS algorithm. SPIReS estimates fSCA of an observation by using a snow-free observation of the same location as a reference. We employ an approach forgoing gridded products and instead use the full spatial accuracy of MODIS and VIIRS surface reflectance data to estimate fSCA over a ROI in the eastern Sierra Nevada. Our approach uses a hierarchical triangular mesh to represent the locations of individual ungridded observations, allowing us to accurately spatially match fractionally snow-covered observations with snow-free observations. This lead to a reduction of the a mean absolute error of fSCA estimates from 0.064 to 0.037. 
 
 # Introduction
 
-> "location, location, location."
+Considering its high reflectance and large land cover, snow is an important forcing on Earth's radiation balance and hence the climate [@Durand2017].
+Further, significant portions of earth's population rely on water originating from snow-melt [@Barnett2005; @Durand2017]. The snowpack is hereby  important because it buffers the runoff [@Lettenmaier2015]. Understanding snowmelt processes therefore is crucial to manage water resources, especially considering the anticipated drastic changes in snowmelt caused by globally changing climatic conditions. 
 
-> Lord Harold Samuel
+In order to estimate and predict the spatial and temporal extent of snow cover, the snow's energy- and massbalance are simulated. Besides meteorological conditions, spatially resolved data on the snowpack in terms of extent/cover, depth, presence of water, temperature, (+SWE), and albedo are herefore required [@Dozier2004]. 
 
-Runoff from snowmelt provides water for a large portion of the world [@Mankin2015] and is a forcing on global climate and weather [@Hansen2004]. Knowledge of the spatial extent and distribution of snow cover and the snow's properties is therefore crucial in water resource management and climate and weather modeling. 
+Measuring of snow can be subdivided into the identification of the existence/extent of snow, and the measurements of its properties such as depth, density, water content, albedo, and temperature profile.
 
-Satellite remote sensing observations allow us to measure snow cover on a global and regional scale. A commonly used method to estimate snow cover from multi-spectral satellite data is the Normalized Difference Snow Index (NDSI), described by [@Dozier1989]. NDSI is used in the Moderate Resolution Imaging Spectroradiometer (MODIS) and the Visible Infrared Imaging Radiometer Suite (VIIRS) standard snow cover products (MOD10A1[^mod10a1]/VNP10A1[^VNP10A1]). The appeal in NDSI lies in its simplicity: Using a threshold of $NDSI \geq 0.4$, an observation/pixel is identified as snow [@Hall1995].
+Traditional ways of measuring the snowpack are snowpillows, snowcourses, and metrological surveys. These type of measurements are sparse and infrequent and further subject to inhomogenous conditions. In contrary, remote sensing can provide temporal and spatial continuous data [@Dozier2004; @Nolin2010].
+
+For hydrology, (+SWE), is an essential snowpack parameter. However, the snow community lacks an approach for routinely mapping its global distribution [@Lettenmaier2015] on a sufficient space-time resolution. The SnowEX [@Durand2017] project therefore is seeking to help define a mission proposal. 
+
+Measuring the global extent of snow on the other side is currently generally possible from remote sensing data, with challenges arising from a) cloud cover, b) vegetation c) complex terrain. Snow extent can globally and routinely be calculated either from a combination of the visible and shortwave infrared (SWIR) surface reflectance data, or from (passive and active) microwave [@Frei2012] data. Global active microwave data is available from e.g. QuickSCAT, however only for the time period between 1999 and 2009. Global passive microwave data is continuously available since the 1970s. However, due to the low signal, passive microwave data is only available at coarse resolution.
+
+Specifically for mountainous regions, characterized by high topographic heterogeneity, spatial resolutions need to be fine enough to sufficiently capture the temporal and spatial variability of the snowpack. [@Lettenmaier2015] suggests spatial resolutions of snow extent not coarser than $\approx \SI{100}{\meter}$ and temporal resolution of not more than one week. Hence, passive microwave data is not suitable for snow extent measurements in mountainous areas. The required resolution also exceed the spatial and/or temporal resolution of visible and SWIR reflectance data of spaceborn remote sensing instrument. It therefore is necessary to map snow cover at sub-pixel accuracy [@Dozier2004].
+
+Several algorithms to binarily classify pixels into 'snow' or 'non-snow' (i.e. binary snowmaps) as well as algorithms to estimate (+fSCA) (i.e. sub-pixel) from multipsectral reflectance data exist [@Nolin2010].
+
+Both snow and clouds are highly reflective in the visible part of the spectrum. However, in contrary to clouds, snow is highly absorptive in the (+SWIR) part of the spectrum, allowing to distinguish snow from clouds by using the ratio of visible and SWIR [@Hall2011] reflectances. The usage became firstly feasible with the launch of the Landsat TM, which included sensors for (+SWIR) [@Lettenmaier2015]. [@Dozier1989] introduced the normalized differences of a visible band and a  (+SWIR) band (later termed NDSI [@Hall1995]) to identify snow. Combined with threshold values of this difference, Landsat TM pixels could be categorized into snow-covered and snow-free. The appeal in NDSI lies in its simplicity: Using a threshold of $NDSI \geq 0.4$, an observation/pixel is identified as snow [@Dozier1989; @Hall1995].
 
 $$NDSI = \frac{R\lambda(VIS)−R\lambda(SWIR)}{R\lambda(VIS)+R\lambda(SWIR)}$$
+
+A challenge in mapping snow-covered area is forest cover obscuring the snow beneath the canopy contributing to the pixel reflectance. [@Klein1998] therefore introduced a combination of (+NDVI) and (+NDSI) to reduce the error in snow cover detection in dense vegetation. The approach was adapted by [@Hall2002; @Hall2001] to introduce the level-3 snow products for MODIS at \SI{500}{\meter} resolution and VIIRS (MOD10A1[^mod10a1]/VNP10A1[^VNP10A1]). The approach also includes on thermal masks to identify "spurious snow": A pixel is determined not to be snow if its temperature is greater \SI{277}{\kelvin}). 
 
 [^mod10a1]: [@MOD10A1],
 
 [^VNP10A1]: [@VNP10A1]
 
-In large parts of the world, especially in mountainous terrain, the snow cover varies at higher resolutions than the resolution of medium-resolution space-born remote sensors such as MODIS or VIIRS. Consequently, it is necessary to identify _fractional_ snow cover areas (fSCA) of an observation/pixel, i.e., at the sub-pixel level [@Selkowitz2014]. While the NDSI should not be interpreted as fSCA[@Stillinger2022], [@Salomonson2004; @Salomonson2006] developed a regression-based approach to conclude fSCA from NDSI:
+While the (+NDSI) itself should not be interpreted as (+fSCA) [@Stillinger2022], [@Salomonson2004; @Salomonson2006] developed a regression-based approach to conclude fSCA from NDSI: The model is fitted with binary snowmap data from Landsat ETM and results in the following relationships for MODIS/Terra:
 
 $$
 fSCA = −0.01 + (1.45 × NDSI)
 $$
 
-This regression approach fails in the transitional periods during accumulation and melt, overestimates fSCA some areas of the world while underestimating it in others, and has a high median error [@Rittger2013]. Higher accuracy of fractional (sub-pixel) snow-covered area estimations can be achieved through spectral analysis from multi-spectral measurements [@Stillinger2022]. Spectral analysis may also allow conclusions on snow properties, such as the grain size and the presence of light-absorbing particles (LAP). 
+This regression approach fails in the transitional periods during accumulation and melt, overestimates (+fSCA) some areas of the world while underestimating it in others, and has a high median error [@Rittger2013]. Higher accuracy of (f+SCA) estimations can be achieved through spectral analysis from multi-spectral measurements [@Stillinger2022]. Spectral analysis also provides the opportunity to estimate snow properties, such as the grain size and the presence of light-absorbing particles (LAP). 
 
-The MODIS snow-covered area and grain size (MODSCAG) algorithm [@Painter2009] uses the unique spectra of snow, vegetation, and soil/rock and simultaneously estimates the fractional snow cover and the snow grain size from MODIS surface reflectance data. It assumes that the reflectance signal $R$ that MODIS receives is a linear spectral mixture of the reflectance spectra $R_k$ of the constituent endmembers $k$ (i.e., snow, vegetation, soil/rock) within a pixel. 
+Spectral mixing is the assumption that measured radiances are a combination of the radiances reflected by different constituent surfaces [@Dozier2004].
+In remote sensing, the mixing results from the fact that pixels of remote sensing sensors are often too large to represent a pure constituent material and rather represent a mixture of a number of constituents materials. Spectral unmixing is an approach in which the spectrum of a mixed pixel is decomposed into the spectra of the constituent materials in order to determine the proportionate contribution of each constituent material to the mixed pixel. Hence, spectral unmixing provides a method to retrieve sub-pixel detail [@Keshava2003].
+
+In the context of snow, the assumption of linear mixing is valid as long as only minimal interactions between different surfaces can be assumed, such as on planar areas and/or snow cover above the tree line [@Painter2009; @Dozier2004]. If multiple scatterings are apparent (e.g. reflections from vegetation to snow), the mixing has to be modelled nonlinearly [@Roberts1993].
+
+[@Vikhamar2003] present an approach for fractional snow cover identification (SnowFrac) based on constrained linear spectral unmixing. The algorithm particularly tackles the challenge of identifying fractional snow cover in tree covered areas. It uses land-cover data to a-priori determine the non-snow endmembers.
+
+[@Painter2003] describe (+MEMSCAG), a method derived from MESMA [@Roberts1998], to obtain the subpixel snowcover, grainsize and albedo for (+AVIRIS) pixels. The underlying method is linear spectral unmixing. Simultaneously, snow grain size and the fractional snow cover is estimated. Endmembers of pure snow for varying grain sizes were modeled with Mie theory. Additionally, a library of 60 endmembers for rock, soil, vegetation, and ice are used.
+
+[@Painter2009] describes (+MODSCAG), an progression of MEMSCAG, to enable subpixel snowcover, grainsize, and albedo estimations for MODIS pixels. (+MODSCAG) uses the shape of the spectras rather than absolute reflectances, which makes it suitable to estimate snow parameters for rough mountainous regions in which terrain and hence illumination angles are not precisely determinable. (+MODSCAG) accounts for nonlinear mixture, however avoids nonlinear solving through the use of pre-calculated canopy-level endmembers that are linearly combined. (+MODSCAG) assumes that the reflectance signal R that MODIS receives is a linear spectral mixture of the reflectance spectra $R_k$ of the constituent endmembers $k$ within a pixel. 
 
 $$R_\lambda = \epsilon_{\lambda} + \sum_{k=1}^N f_k* R_{\lambda, k}$$
 
-$R_\lambda$ is the observed reflectance at wavelength $\lambda$ that is modeled as the weighted sum of the weights/fractions $f_k$ of the endmember $k$  with a reflectance of $R_{\lambda, k}$ and the residual error $\epsilon_{\lambda}$. For MODSCAG, the endmembers are snow, different types of rock and soil, vegetation, and shade. The reflectances $R_{\lambda, k}$ of the rock/soil vegetation endmembers are measured in the field and the laboratory. For the snow endmember, MODSCAG uses a snow endmember library containing snow reflectance spectra for varying grain sizes and solar zenith angles. MODSCAG then finds the snow endmember and endmember fractions that minimizes the square error of the linear combination.
+$R_\lambda$ is the observed reflectance at wavelength $\lambda$ that is modeled as the weighted sum of the weights/fractions $f_k$ of the endmember $k$  with a reflectance of $R_{\lambda, k}$ and the residual error $\epsilon_{\lambda}$. For (+MODSCAG), the endmembers are snow, different types of rock and soil, vegetation, and shade. The reflectances $R_{\lambda, k}$ of the rock/soil vegetation endmembers are measured in the field and the laboratory. For the snow endmember, (+MODSCAG) uses a snow endmember library containing snow reflectance spectra for varying grain sizes and solar zenith angles. (+MODSCAG) then finds the snow endmember and endmember fractions that minimizes the square error of the linear combination.
+
 $$minimize \sqrt{\sum_{k_\lambda=0}^{n} \epsilon_\lambda^2}$$
-The Snow Property Inversion From Remote Sensing (SPIReS) algorithm follows a similar approach. Rather than solving for the non-snow endmembers, SPIReS exploits the fact that for any given location (in the following referred to as a grid cell), the non-snow background endmember spectrum $R_0$ can be measured during the summer[^summer]. SPIReS creates a snow-free endmember reflectance library containing a single snow-free reflectance spectrum for each grid cell. This single snow-free reflectance spectrum is selected from all measured spectra for a given grid cell subject to a set of criteria: The snow-free spectrum must not be quality flagged, be cloud and cloud shadow-free, and have an NDSI value of less than zero. From the spectra that pass those criteria, the spectrum with the highest NDVI is selected as the snow-free reference spectrum[^exception]. Additional advancements of SPIReS include a correction for canopy cover, persistence filters to eliminate false-positive caused by cloud presence, temporal smoothing, and cell clustering in which similar cells are grouped prior to computing to improve performance.
+
+The (+SPIReS) algorithm follows a similar approach. Rather than solving for the non-snow endmembers, (+SPIReS) exploits the fact that for any given location (in the following referred to as a grid cell), the non-snow background endmember spectrum $R_0$ can be measured during the summer[^summer]. SPIReS creates a snow-free endmember reflectance library containing a single snow-free reflectance spectrum for each grid cell. This single snow-free reflectance spectrum is selected from all measured spectra for a given grid cell subject to a set of criteria: The snow-free spectrum must not be quality flagged, be cloud and cloud shadow-free, and have an NDSI value of less than zero. From the spectra that pass those criteria, the spectrum with the highest NDVI is selected as the snow-free reference spectrum[^exception]. Additional advancements of SPIReS include a correction for canopy cover, persistence filters to eliminate false-positive caused by cloud presence, temporal smoothing, and cell clustering in which similar cells are grouped prior to computing to improve performance.
 
 [^summer]: This, of course, excludes regions of permanent snow-cover, such as the arctic regions or glaciers
 
 [^exception]:  If no spectrum with an NDSI of less than zero exists for a given cell, the spectrum with the lowest band-3 reflectance is selected. 
 
+\clearpage
 # SPIReS uncertainty and possible causes 
+> "location, location, location."
+
+> Lord Harold Samuel
+
 Both MODSCAG and SPIReS use _gridded_ (i.e., level 3) surface reflectance products as their inputs (e.g., MOD09GA[^mod09ga]). Using gridded products greatly simplifies verification efforts where snow cover estimates derived from other instruments have to be spatially associated with the MODIS-based snow cover estimates. In the case of SPIReS, the (fractionally) snow-covered observations also have to be spatially associated with snow-free observation of the same location, which is trivial using a gridded product and challenging for an ungridded product.
 
 [^mod09ga]: DOI: [10.5067/MODIS/MOD09GA.006](http://dx.doi.org/10.5067/MODIS/MOD09GA.006)
@@ -329,6 +361,7 @@ In figure \ref{snow_depth}, we display snow depth measured at the Cold Regions R
 
 We compute the fSCA for each MODIS and VIIRS IFVO falling into our ROI using snow-free endmembers for all of our $R_0$ libraries for six days between 2017-12-07 and 2017-12-13, skipping 2017-12-09 since it had a far-off nadir viewing angle for MODIS/Terra over our ROI. A total of 13709 MODIS and 8912 VIIRS iFOVs fell into our spatiotemporal bounding box. We additionally compute the fSCA using a standard MODIS-grid $R_0$ library as a reference. 
 
+### MODIS
 The six days contained six distinctly different MODIS overpasses, as displayed in figure \ref{overpasses}: Two overpasses appeared close to the nadir, two overpasses far off-nadir, and two overpasses at an intermediate distance, one each with MODIS passing east and west of our ROI. We can notice a slight influence of smoke from the Thomas Fire in Santa Barbara and Ventura county (c.f. figure \ref{thomas}) over our ROI. 
 
 ![MODIS overpasses (magenta) over our ROI (green) for our temporal extent between 2017-12-07 and 2017-12-13. Two overpasses appeared close to the nadir, two overpasses far-off nadir, and two overpasses at an intermediate distance. \label{overpasses}](images/C3/overpasses.png)
@@ -451,7 +484,7 @@ We found similar accuracy when calculating fSCA from VIIRS observations using $R
 | stare17_3     | 0.0738 | 0.1022 |     0.0103 |
 | stare17_4     | 0.0731 | 0.1019 |     0.0103 |
 
-## Evaluation of Time series Plausibility
+## Time series Plausibility
 Figure \ref{fsca_gridded} shows a time series of fSCA computed for a grid cell at Reds Lake and CUES using a MODIS-grid $R_0$ library. Two things are immediately observable: 
 
 1) There are strong fluctuations of the fSCA. These fluctuations are not plausible and thus are to be interpreted as noise
@@ -489,19 +522,12 @@ Figure \ref again displays the MODIS cell around Reds lake. Additionally, we add
 ![Meadow around Reds Lake represented by trixel cover (red triangles). All MODIS and VIIRS observations geolocations that fell into this region are marked as red and green dots.](images/C3/complex.png)
 
 ![fSCA timeline for a complex region for combined MODIS and VIIRS observation (red) and an adjacent grid cell (blue). Both curves have been resampled to 7 days. Note that the fSCA estimates stay well above 0.1 in the summer months for the cell estimates. \label{complex_timeline}](images/C3/complex_timeline.png)
-
 \clearpage
-# Conclusion
 
-# Outlook
+# Conclusions and outlook
+Since SPIReS requires finding a spatially coinciding snow-free reference spectrum to estimate the fSCA of an observation, it is sensitive to the accuracy of spatial matching of observations. The spatial discretization of gridded data however disallows for accurate spatial matching. Further, gridded data disallows for accurate evaluation of the estimation accuracy. Gridded data simply does not allow to determine for what exact area an estimation was done. Therefore finding the ground truth data that actually intersects an observation is impossible. By forgoing gridded data and working directly with ungridded swath data, we were able to exploit the full spatial fidelity of MODIS surface reflectance data. This allowed us to find snow-free observations that more closely match the area and viewing geometry of an observation for which the fSCA is to be estimated. The improvement of matching observations lead to almost halving the mean absolute error in the fSCA estimations.
 
-- Cross-sensor: include NOAA20 and NOAA20 VIIRS, Landsat, aqua
-- bigger ROI
-- Analysis of causes of accuracy improvements
-	- R0 location matching
-	- R0 viewing geom matching
-	- Oversampling
-	- Specular effects
+Further efforts will focus on the integration of other datasets, such as surface reflectance data from NOAA20 VIIRS, Landsat, MODIS aqua, and GOES. Larger ROIs with different topography should be processed to evaluate the influence of the topography on the results. More research need to be carried out to understand the relation between fSCA estimate accuracy and spatial matching of $R_0$, the matching of viewing geometries, the oversampling and specular effects.
 
 \newpage
 \clearpage
