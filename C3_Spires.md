@@ -16,7 +16,7 @@ header-includes:
     - \usepackage[acronym]{glossaries}    
     - \include{context/acronyms.tex}
 ---
-
+\clearpage
 # Abstract {-}
 Gridding of remote sensing products discretize space and thus makes the evaluation of geospatial coincidence trivial. This greatly simplifies the development of algorithms that require multiple observations of a single location as their input and further allows for easy algorithm accuracy evaluation against ground truth data. However, the loss in location precision leads to unnecessary noise in algorithm outputs. We demonstrate how the discretization of MODIS surface reflectance data leads to spatial mismatching that propagate to inaccuracies in the estimation of fractional snow cover area (fSCA) from the SPIReS algorithm. SPIReS estimates fSCA of an observation by using a snow-free observation of the same location as a reference. We employ an approach forgoing gridded products and instead use the full spatial accuracy of MODIS and VIIRS surface reflectance data to estimate fSCA over a ROI in the eastern Sierra Nevada. Our approach uses a hierarchical triangular mesh to represent the locations of individual ungridded observations, allowing us to accurately spatially match fractionally snow-covered observations with snow-free observations. This lead to a reduction of the a mean absolute error of fSCA estimates from 0.064 to 0.037. 
 
@@ -466,23 +466,30 @@ Table: Mean absolute error, root mean square error and variance of the fSCA esti
 
 We found similar accuracy when calculating fSCA from VIIRS observations using $R_0$ libraries from MODIS observations. The AME range from 0.072 to 0.081. 
 
-| level_0       |    AME |   RMSE |   Variance |
-|:--------------|-------:|-------:|-----------:|
-| stare15_1     | 0.0771 | 0.1048 |     0.0106 |
-| stare15_2     | 0.0808 | 0.1078 |     0.0112 |
-| stare15_3     | 0.0774 | 0.1047 |     0.0107 |
-| stare15_4     | 0.076  | 0.1038 |     0.0105 |
-| stare15_5     | 0.0747 | 0.1025 |     0.0103 |
-| stare15_6     | 0.074  | 0.1021 |     0.0103 |
-| stare15_7     | 0.073  | 0.1014 |     0.0102 |
-| stare16_1     | 0.0746 | 0.1029 |     0.0104 |
-| stare16_2     | 0.079  | 0.1065 |     0.011  |
-| stare16_3     | 0.0755 | 0.1032 |     0.0105 |
-| stare16_4     | 0.0745 | 0.1027 |     0.0104 |
-| stare17_1     | **0.072**  | 0.1005 |     0.0099 |
-| stare17_2     | 0.0771 | 0.1049 |     0.0108 |
-| stare17_3     | 0.0738 | 0.1022 |     0.0103 |
-| stare17_4     | 0.0731 | 0.1019 |     0.0103 |
+| $R_0$ res    | $R_0$ view bins    |    AME |   RMSE |   Variance |
+|:----------|:-------         |-------:|-------:|    -------:|
+| level 14  | 1	              | 0.0796 | 0.1064 | 0.0108 |
+| level 14  | 2               | 0.0827 | 0.1090 | 0.0113 |
+| level 14  | 3	              | 0.0798 | 0.1063 | 0.0108 |
+| level 14  | 4	              | 0.0780 | 0.1048 | 0.0106 |
+| level 14  | 5	              | 0.0768 | 0.1039 | 0.0105 |
+| level 14  | 6	              | 0.0763 | 0.1035 | 0.0104 |
+| level 14  | 7	              | 0.0754 | 0.1028 | 0.0103 |
+| level 15  | 1               | 0.0771 | 0.1048 | 0.0106 |
+| level 15  | 2               | 0.0808 | 0.1078 | 0.0112 |
+| level 15  | 3               | 0.0774 | 0.1047 | 0.0107 |
+| level 15  | 4               | 0.076  | 0.1038 | 0.0105 |
+| level 15  | 5               | 0.0747 | 0.1025 | 0.0103 |
+| level 15  | 6               | 0.074  | 0.1021 | 0.0103 |
+| level 15  | 7               | 0.073  | 0.1014 | 0.0102 |
+| level 16  | 1               | 0.0746 | 0.1029 | 0.0104 |
+| level 16  | 2               | 0.079  | 0.1065 | 0.011  |
+| level 16  | 3               | 0.0755 | 0.1032 | 0.0105 |
+| level 16  | 4               | 0.0745 | 0.1027 | 0.0104 |
+| level 17  | 1               | **0.072**  | 0.1005 | 0.0099 |
+| level 17  | 2               | 0.0771 | 0.1049 | 0.0108 |
+| level 17  | 3               | 0.0738 | 0.1022 | 0.0103 |
+| level 17  | 4               | 0.0731 | 0.1019 | 0.0103 |
 
 ## Time series Plausibility
 Figure \ref{fsca_gridded} shows a time series of fSCA computed for a grid cell at Reds Lake and CUES using a MODIS-grid $R_0$ library. Two things are immediately observable: 
