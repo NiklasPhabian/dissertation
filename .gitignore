@@ -1,3 +1,17 @@
 .DS_Store
 .directory
 .obsidian/
+*.aux
+*.bbl
+*.blg
+*.glg
+*.glo
+*.ist
+*.log
+*.out
+*.pdf
+*.gls
+*.toc
+*.bcf
+*.run.xml
+*-checkpoint.ipynb
