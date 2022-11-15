@@ -529,10 +529,10 @@ We further demonstrate that noise in (+fSCA) timeseries can be reduced by pinnin
 
 Further efforts will focus on integrating other datasets, such as surface reflectance data from NOAA20 (+VIIRS), Landsat, (+MODIS) aqua, and GOES. Larger (+^ROI) with different topography should be processed to evaluate the influence of the topography on the results. Finally, more research needs to be carried out to understand the relation between (+fSCA) estimate accuracy and spatial matching of $R_0$, the matching of viewing geometries, the oversampling, and specular effects.
 
-\newpage
-\clearpage
-
 # Acknowledgements {.unlisted .unnumbered}
 We appreciate the founding through NASA's ACCESS 17, which allowed us to develop the core functionality of the (+STARE) software collection. We thank our project collaborators at Bayesics LLC and (+OPeNDAP). We extend our gratefulness to Timbo Stillinger, Ned Bair, and Karl Rittger for their invaluable guidance on remote sensing of snow.
+
+\newpage
+\clearpage
 
 # References
