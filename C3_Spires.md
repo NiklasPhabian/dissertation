@@ -18,7 +18,7 @@ header-includes:
 ---
 
 # Abstract {-}
-Gridding of remote sensing products discretizes space and thus makes the evaluation of geospatial coincidence trivial. This dramatically simplifies the development of algorithms that require multiple observations of a single location as their input and further allows for easy algorithm accuracy evaluation against ground truth data. However, the loss in location precision can lead to unnecessary noise in algorithm outputs. The (SPIReS) algorithm estimates (+fSCA) from surface reflectance observations using a snow-free observation of the same location as a reference. We demonstrate how the discretization of (+MODIS) surface reflectance data leads to spatial mismatching that propagates errors into the estimation of fractional (+fSCA). We employ an approach forgoing gridded products and instead use the full spatial accuracy of (+MODIS) and (+VIIRS). Our approach uses a (+HTM) to represent the locations of individual ungridded observations, allowing us to spatially match fractionally snow-covered observations accurately with snow-free reference observations. This reduces the (+MAE) of (+fSCA) estimates from 0.064 to 0.037. 
+Gridding of remote sensing products discretizes space and thus makes the evaluation of geospatial coincidence trivial. This dramatically simplifies the development of algorithms that require multiple observations of a single location as their input and further allows for easy algorithm accuracy evaluation against ground truth data. However, the loss in location precision can lead to unnecessary noise in algorithm outputs. The (+SPIReS) algorithm estimates (+fSCA) from surface reflectance observations using a snow-free observation of the same location as a reference. We demonstrate how the discretization of (+MODIS) surface reflectance data leads to spatial mismatching that propagates errors into the estimation of fractional (+fSCA). We employ an approach forgoing gridded products and instead use the full spatial accuracy of (+MODIS) and (+VIIRS). Our approach uses a (+HTM) to represent the locations of individual ungridded observations, allowing us to spatially match fractionally snow-covered observations accurately with snow-free reference observations. This reduces the (+MAE) of (+fSCA) estimates from 0.064 to 0.037. 
 
 \glsresetall
 
@@ -27,21 +27,11 @@ Due to its high reflectance and spatial extent, snow is an important factor in E
 
 It is, therefore, crucial to understand, estimate, and predict the spatial distribution and properties of snow, requiring spatially resolved measurements of the snowpack in terms of extent (cover), depth, density, water content ((+SWE), snow water equivalent), temperature profile, and albedo [@Dozier2004]. 
 
-Traditional ways of measuring the snowpack are snow pillows, snow courses, and metrological surveys. While these measurements allow for detailed insights into the snowpack's properties, they are sparse, infrequent, and subject to inhomogeneous conditions.
+Traditional ways of measuring the snowpack are snow pillows, snow courses, and metrological surveys. While these measurements allow for detailed insights into the snowpack's properties, they are sparse, infrequent, and not necessarily representative in  inhomogeneous terrain.
 
-> Frew note: "subject to inhomogeneous conditions" is vague, be more specific.
+Conversely, remote sensing can provide spatiotemporally continuous data on the global extent of snow [@Dozier2004; @Nolin2010]: Snow extent can be retrieved from multispectral surface reflectance data and from (passive and active) microwave [@Frei2012] data. Global active microwave data is limited in time (e.g., QuickSCAT from 1999 to 2009.) Global passive microwave data has been continuously available since the 1970, but only at coarse ($\approx \SI{25}{\kilo\meter}) spatial resolutions. Specifically for mountainous regions characterized by high topographic relief, spatial resolutions need to be fine enough to capture the temporal and spatial variability of the snowpack. [@Lettenmaier2015] suggests spatial resolutions of snow extent not coarser than $\approx \SI{100}{\meter}$ and temporal resolution of not more than one week. Hence, passive microwave data is unsuitable for mountainous area snow extent measurements. The required spatiotemporal resolution also exceeds the spatiotemporal resolution of multispectral surface reflectance data of spaceborne remote sensing instruments. While Landsat may have a sufficient spatial resolution, it lacks temporal resolution; conversely, while moderate resolution sensors such as (+MODIS) and (+VIIRS) have a sufficient temporal resolution, they lack spatial resolution. Since their pixels (aka (+^IFOV)) are too large to observe pure constituents, it, therefore, is necessary to map snow cover at sub-pixel accuracy [@Dozier2004].
 
-Conversely, remote sensing can provide spatiotemporally continuous data on the global extent of snow [@Dozier2004; @Nolin2010]: Snow extent can be retrieved from multispectral surface reflectance data and from (passive and active) microwave [@Frei2012] data. Global active microwave data is limited in time (e.g., QuickSCAT from 1999 to 2009.) Global passive microwave data has been continuously available since the 1970, but only at coarse (>= ?? km) spatial resolutions.
-
-> Frew note: say how coarse
-
-Specifically for mountainous regions characterized by high topographic relief, spatial resolutions need to be fine enough to capture the temporal and spatial variability of the snowpack. [@Lettenmaier2015] suggests spatial resolutions of snow extent not coarser than $\approx \SI{100}{\meter}$ and temporal resolution of not more than one week. Hence, passive microwave data is unsuitable for mountainous area snow extent measurements. The required spatiotemporal resolution also exceeds the spatiotemporal resolution of multispectral surface reflectance data of spaceborne remote sensing instruments. While Landsat may have a sufficient spatial resolution, it lacks temporal resolution; conversely, while moderate resolution sensors such as (+MODIS) and (+VIIRS) have a sufficient temporal resolution, they lack spatial resolution. Since their pixels (aka (+^IFOV)) are too large to observe pure constituents, it, therefore, is necessary to map snow cover at sub-pixel accuracy [@Dozier2004].
-
-Several algorithms to classify pixels into 'snow' or 'non-snow' (i.e., binary snowmaps) as well as algorithms to estimate (+fSCA) (i.e., sub-pixel) from multispectral surface reflectance data exist [@Nolin2010]:
-
-> Frew note: does the trailing ":" above mean that the following paragraph is a quote?
-
-Both snow and clouds are highly reflective in the visible part of the spectrum. However, contrary to clouds, snow is highly absorptive in the (+SWIR) part of the spectrum, allowing us to distinguish snow from clouds by using the ratio of visible and (+SWIR) [@Hall2011] surface reflectances. With the launch of Landsat 4 (+TM), which included sensors for (+SWIR), it became possible to discriminate snow from clouds on a global scale [@Lettenmaier2015] for the first time. [@Dozier1989] introduced the normalized differences of a visible band and a (+SWIR) band (later termed (+NDSI) [@Hall1995]) to identify snow. The appeal of (+NDSI) lies in its simplicity:  An observation/pixel is identified as snow if its (+NDSI) exceeds a threshold, typically 0.4 [@Dozier1989; @Hall1995].
+Several algorithms to classify pixels into 'snow' or 'non-snow' (i.e., binary snowmaps) as well as algorithms to estimate (+fSCA) (i.e., sub-pixel) from multispectral surface reflectance data exist [@Nolin2010]. Both snow and clouds are highly reflective in the visible part of the spectrum. However, contrary to clouds, snow is highly absorptive in the (+SWIR) part of the spectrum, allowing us to distinguish snow from clouds by using the ratio of visible and (+SWIR) [@Hall2011] surface reflectances. With the launch of Landsat 4 (+TM), which included sensors for (+SWIR), it became possible to discriminate snow from clouds on a global scale [@Lettenmaier2015] for the first time. [@Dozier1989] introduced the normalized differences of a visible band and a (+SWIR) band (later termed (+NDSI) [@Hall1995]) to identify snow. The appeal of (+NDSI) lies in its simplicity:  An observation/pixel is identified as snow if its (+NDSI) exceeds a threshold, typically 0.4 [@Dozier1989; @Hall1995].
 
 $$NDSI = \frac{R\lambda(VIS)-R\lambda(SWIR)}{R\lambda(VIS)+R\lambda(SWIR)}$$
 
@@ -82,7 +72,7 @@ The (+SPIReS) algorithm follows a similar approach. However, rather than solving
 
 > Lord Harold Samuel
 
-Both (+MODSCAG) and (+SPIReS) use _gridded_ (i.e., level 3) surface reflectance products as their inputs (e.g., MOD09GA[^mod09ga]). Gridded products bin irregularly spaced observations into a discretized space. Using gridded products greatly simplifies verification efforts in which snow cover estimates derived from other instruments (e.g., high-resolution binary snowmaps) have to be spatially associated with the snow cover estimates from (+SPIRES). In the case of (+SPIReS), the (fractionally) snow-covered observations also have to be spatially associated with snow-free observations of the same location, which is trivial using a gridded product and challenging for an ungridded product.
+Both (+MODSCAG) and (+SPIReS) use _gridded_ (i.e., level 3) surface reflectance products as their inputs (e.g., MOD09GA[^mod09ga]). Gridded products bin irregularly spaced observations into a discretized space. Using gridded products greatly simplifies verification efforts in which snow cover estimates derived from other instruments (e.g., high-resolution binary snowmaps) have to be spatially associated with the snow cover estimates from (+SPIReS). In the case of (+SPIReS), the (fractionally) snow-covered observations also have to be spatially associated with snow-free observations of the same location, which is trivial using a gridded product and challenging for an ungridded product.
 
 [^mod09ga]: [@MOD09GA]. [DOI [10.5067/MODIS/MOD09GA.006](http://dx.doi.org/10.5067/MODIS/MOD09GA.006)
 
@@ -116,7 +106,7 @@ The question consequently arises of how the accuracy of any derived product, in 
 
 The location uncertainty introduces an additional issue specifically for (+SPIReS): (+SPIReS) does not solve for the snow-free endmembers of a fractionally snow-covered observation but instead uses a snow-free observation of the same location as the snow-free endmember. If gridded products are used, the snow-free observations for the "same" location is a (snow-free) observation associated with the same grid cell. Since the gridding blurred the location of the footprints of the observations, this snow-free observation may be for a different area than the fractionally snow-covered observation (even though they have been binned to the same grid cell). It is, e.g., conceivable that a fractionally snow-covered observation covers a region consisting of snow and forest while the associated snow-free observation covers a region consisting of soil and rock. 
 
-![Center location of observations used for figure \ref{leftright}. All observations are within \SI{50}{\meter}. \label{ndvi_locs}](images/C3/ndvi_locs.png)
+![Center location of observations used for figure \ref{leftright}. All observations are within \SI{50}{\meter}. \label{ndvi_locs}](images/C3/locator169.pdf)
 
 Finally, a concern is that MOD09GA contains merely the sensors' zenith angles but no trivially accessible information about the actual viewing geometry of the observations[^pointers]. The sensor zenith angle alone does not provide information about whether an observation was acquired while the sensor was pointed left or right. However, knowing the actual viewing geometry may be crucial in mountainous terrain where opposing faces of the same mountain may significantly vary regarding the composition of rocks/soil and vegetation.
 
@@ -124,10 +114,8 @@ Finally, a concern is that MOD09GA contains merely the sensors' zenith angles bu
 
 ![(+NDVI) for a fixed location at Reds lake in Mammoth (to the precision of \SI{50}{\meter}) for varying along-scan positions. Note that the off-nadir observations have higher (+NDVI) for observations in which the sensor looks east onto the location. \label{leftright}](images/C3/redslake_NDVI.png)
 
-> Frew note: you need a locator map that shows all the local placenames you're using (Red's Lake, Paranoid Flats, Chair 14, etc.
-
-Figure \ref{leftright} shows (+NDVI) values for observations at a fixed location at Reds Lake in Mammoth (within a radius of \SI{50}{\meter}. C.f. figure \ref{ndvi_locs}) under varying viewing geometries (here represented as the along-scan position). The asymmetry demonstrates the influence of the viewing geometry on the reflectance spectrum: 
-When the sensor passes east of the observed location and thus is looking west (i.e., low along-scan position), it observes the eastern face of _Top of Chair 15_ (Paranoid Flats), which is mainly exposed rock (c.f. figure top \ref{eastwest}). However, when the sensor passes west of the observed location and thus is looking east (i.e., high along-scan position), it observes the western face below the lift line of Chair 14, which is covered with sparse trees (c.f. figure bottom \ref{eastwest}). 
+Figure \ref{leftright} shows (+NDVI) values for observations at a fixed location at Reds Lake in Mammoth (within a radius of \SI{50}{\meter}). C.f. figure \ref{ndvi_locs}) under varying viewing geometries (here represented as the along-scan position). The asymmetry demonstrates the influence of the viewing geometry on the reflectance spectrum: 
+When the sensor passes east of the observed location and thus is looking west (i.e., low along-scan position), it observes the eastern face of _Top of Chair 14_ (_Chair 23 Area_), which is mainly exposed rock (c.f. figure top \ref{eastwest}). However, when the sensor passes west of the observed location and thus is looking east (i.e., high along-scan position), it observes the western face below the _Chair 14 lift line_, which is covered with sparse trees (c.f. figure bottom \ref{eastwest}). 
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{images/C3/east.png}
@@ -166,8 +154,6 @@ The (+STARE) concept is implemented in a collection of software, described in ch
 ## Data Preparation
 Our study area (+ROI) is around Mammoth Lakes in the eastern Sierra Nevada, spanning from Lake Thomas Edison to June Lake (c.f. figure. \ref{roi}).
 
-> Frew note: locator map!
-
 We acquired all Level 2 (+MODIS)/Terra atmospherically corrected surface reflectance granules (MOD09[^mod09]) and their corresponding geolocation companion granules (MOD03[^mod03]) for the entire sensor lifetime from 2000-02-24 until 2022-09-15 (a total of \num{26466} granules, containing a total of \num{145e9} (+^IFOV), \num{243e6} of which intersecting our (+ROI)). We additionally acquired moderate-resolution VIIRS/Suomi surface reflectance granules (VNP09[^vnp09]) and their corresponding geolocation companion granules (VNP03MOD[^vnp03mod]) for the entire sensor lifetime from 2012-01-19 to 2022-09-15. We also acquired all gridded MOD09GA[^mod09ga] granules for tile H08V05[^ladsweb_dl] for verification purposes.
 
 [^vnp09]: [@VNP09]. [DOI: 10.5067/VIIRS/VNP09.001](https://dx.doi.org/10.5067/VIIRS/VNP09.001)
@@ -178,7 +164,7 @@ We acquired all Level 2 (+MODIS)/Terra atmospherically corrected surface reflect
 
 [^ladsweb_dl]: we used the ladsweb_downloader to download all granules. Ladsweb_downloader is available at [https://github.com/NiklasPhabian/ladsweb_downloader](https://github.com/NiklasPhabian/ladsweb_downloader).
 
-![Region of interest of our study area (red) in the region of Mammoth lakes spanning from Lake Thomas Edison to June Lake. (BBOX: -119.14, 37.4: -118.96, 37.8). \label{roi}](images/C3/roi.png)
+![Region of interest of our study area (red) in the region of Mammoth lakes spanning from Lake Thomas Edison to June Lake. (BBOX: -119.14, 37.4: -118.96, 37.8). \label{roi}](images/C3/roi.pdf)
 
 We then created (+STARE) sidecar companion files for each granule. (+STARE) sidecar companion files contain the geolocation for each (+IFOV) in (+STARE) representation. They are thus analogous to the MOD03/VNP03* companion files, which contain the geolocation of each (+IFOV) in WGS84 coordinates. The MOD09 granules contain surface reflectances at \SI{1000}{\meter}, \SI{500}{\meter}, and \SI{250}{\meter} resolution. However, (+MODIS) geolocations are only distributed at \SI{1000}{\meter} resolution. Since we intend to use the \SI{500}{\meter} surface reflectances, we implemented a geolocation interpolation algorithm, described in section \ref{resadaption}.
 
@@ -439,11 +425,7 @@ We interpret the 4 previous findings as follows:
 
 2. The (+MODIS) gridding algorithm 'forces' there to be one observation per grid cell per day. On days with far-off nadir overpasses, this leads to oversampling, meaning that a single observation is associated with multiple grid cells (c.f. figure \ref{oversampling}). Since each grid cell has its own $R_0$, each one of those grid cells will have a different (+fSCA) estimate, but not for the right reason. If we compute (+fSCA) for (+^IFOV) rather than for grid cells, we circumvent this error, explaining the immediate accuracy improvement even at (+STARE) quadfurcation level 14.
 
-3. The $R_0$ library quadfurcation level dictates how closely $O$ and $O_0$ center locations are matched, while the viewing geometry discretization dictates how closely the footprint of the (+^IFOV) of $O$ and $O_0$ are matched. The closer the footprints match, the less noise from co-registration appears. Higher resolutions, 
-
-	> Frew note: I think you mean quadfurcation levels, not resolutions…
-
-	therefore, result in higher accuracy. We would not expect further gains at resolutions higher than the geolocation accuracy.
+3. The $R_0$ library quadfurcation level dictates how closely $O$ and $O_0$ center locations are matched, while the viewing geometry discretization dictates how closely the footprint of the (+^IFOV) of $O$ and $O_0$ are matched. The closer the footprints match, the less noise from co-registration appears. Higher quadfurcation, therefore, result in higher accuracy. We would not expect further gains at quadfurcation levels higher than the geolocation accuracy.
 
 4. The number of candidates for an ideal snow-free observation during the creation of the $R_0$ library decreases with increasing resolutions (both in terms of quadfurcation level and viewing geometry discretization). At too-high resolutions, some bins will end up with suboptimal $R_0$ spectra (e.g., cloud or smoke contamination), driving down the overall accuracy.
 
