@@ -9,9 +9,12 @@
 *.ist
 *.log
 *.out
-*.pdf
+/*.pdf
 *.gls
 *.toc
 *.bcf
 *.run.xml
 *-checkpoint.ipynb
+chapters/
+chapters_standalone/
+dissertation/

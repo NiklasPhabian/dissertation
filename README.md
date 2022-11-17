@@ -1,23 +1,41 @@
 # Dissertation
 
 # Dependencies
+- pandoc
+- pandoc-citeproc
+- texlive-extra
+- texlive-science
+- texlive-bibtex-extra
+- make
 - librsvg2-bin might be required to include the SVGs; at least it made the error: "check that rsvg-convert is in path." go away ...
 
-# Glossaries
+## Glossaries
 https://github.com/tomncooper/pandoc-gls
 
 
+## For tex
 
-# For tex
+    sudo apt install texlive-bibtex-extra texlive-science texlive-latex-extra biber
+    
+## Biber
+Using lates built of biber (in full/). Needs libsombok-dev installed
 
-sudo apt install texlive-bibtex-extra texlive-science texlive-latex-extra biber
+To build new, follow https://github.com/plk/biber
+
+
+
     
-## Build with latex
+# Build 
+
+    make
+
+## Display warnings only
+
+    pdflatex --interaction=nonstopmode <filename> | awk 'BEGIN{IGNORECASE = 1}/warning|!/,/^$/;'
+
     
-    biber occur
-    makeglossaries occur.glo
-    pdflatex occur.tex
-    
+
+# Convert tex to md
     
 ## tex > md
 
