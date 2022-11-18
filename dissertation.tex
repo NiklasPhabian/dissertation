@@ -34,7 +34,7 @@
   file=false,
   entryhead=false,    
   entrykey=false,  
-  annotation=true,  
+  annotation=false,  
   library=true,
   loadfiles=true,
   natbib=true,
@@ -88,9 +88,11 @@
 \newcommand{\passthrough}[1]{#1}
 \providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 
+% Some modifications on footnotes and paragraphs
 \newlength{\cslhangindent}
 \setlength{\cslhangindent}{1.5em}
-\setlength{\skip\footins}{1.3pc plus 5pt minus 2pt}
+\setlength{\skip\footins}{1.5pc plus 5pt minus 2pt}
+\interfootnotelinepenalty=10000
 
 \newenvironment{cslreferences}%
   {\setlength{\parindent}{0pt}%
@@ -169,7 +171,7 @@
 \input{chapters/C2_Software.tex}
 
 %=== Chapter 3  ============================================
-\chapter{Improving fractional snow cover estimates through increased spatial fidelity}
+\chapter{Improving fractional snow-coverd area estimations through increased spatial fidelity}
 \label{chapter_3}
 \glsresetall
 \input{chapters/C3_Spires.tex}

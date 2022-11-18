@@ -1,5 +1,5 @@
 ---
-title: Improving fractional snow cover estimates through increased spatial fidelity. 
+title: Improving fractional snow-coverd area estimations through increased spatial fidelity
 date: "2022-09-03"
 output:
   pdf_document:
@@ -22,7 +22,7 @@ header-includes:
 \clearpage
 
 # Abstract {- #c3_abstract}
-Gridding of remote sensing products discretizes space and thus makes the evaluation of geospatial coincidence trivial. This dramatically simplifies the development of algorithms that require multiple observations of a single location as their input and further allows for easy algorithm accuracy evaluation against ground truth data. However, the loss in location precision can lead to unnecessary noise in algorithm outputs. The (+SPIReS) algorithm estimates (+fSCA) from surface reflectance observations using a snow-free observation of the same location as a reference. We demonstrate how the discretization of (+MODIS) surface reflectance data leads to spatial mismatching that propagates errors into the estimation of fractional (+fSCA). We employ an approach forgoing gridded products and instead use the full spatial accuracy of (+MODIS) and (+VIIRS). Our approach uses a (+HTM) to represent the locations of individual ungridded observations, allowing us to spatially match fractionally snow-covered observations accurately with snow-free reference observations. This reduces the (+MAE) of (+fSCA) estimates from 0.064 to 0.037. 
+Gridding of remote sensing products discretizes space and thus makes the evaluation of geospatial coincidence trivial. This dramatically simplifies the development of algorithms that require multiple observations of a single location as their input and further allows for easy algorithm accuracy evaluation against ground truth data. However, the loss in location precision can lead to unnecessary noise in algorithm outputs. The (+SPIReS) algorithm estimates (+fSCA) from surface reflectance observations using a snow-free observation of the same location as a reference. We demonstrate how the discretization of (+MODIS) surface reflectance data in gridded products leads to spatial mismatching that propagates errors into the estimation of (+fSCA). We employ an approach forgoing gridded products and instead use the full spatial accuracy of (+MODIS) and (+VIIRS). Our approach uses a (+HTM) to represent the locations of individual ungridded observations, allowing us to spatially match fractionally snow-covered observations accurately with snow-free reference observations. This reduces the (+MAE) of (+fSCA) estimates from 0.064 to 0.037. 
 
 \clearpage
 \glsresetall
@@ -34,13 +34,13 @@ It is, therefore, crucial to understand, estimate, and predict the spatial distr
 
 Traditional ways of measuring the snowpack are snow pillows, snow courses, and metrological surveys. While these measurements allow for detailed insights into the snowpack's properties, they are sparse, infrequent, and not necessarily representative in  inhomogeneous terrain.
 
-Conversely, remote sensing can provide spatiotemporally continuous data on the global extent of snow [@Dozier2004; @Nolin2010]: Snow extent can be retrieved from multispectral surface reflectance data and from (passive and active) microwave [@Frei2012] data. Global active microwave data is limited in time (e.g., QuickSCAT from 1999 to 2009.) Global passive microwave data has been continuously available since the 1970, but only at coarse ($\approx \SI{25}{\kilo\meter}$) spatial resolutions. Specifically for mountainous regions characterized by high topographic relief, spatial resolutions need to be fine enough to capture the temporal and spatial variability of the snowpack. [@Lettenmaier2015] suggests spatial resolutions of snow extent not coarser than $\approx \SI{100}{\meter}$ and temporal resolution of not more than one week. Hence, passive microwave data is unsuitable for mountainous area snow extent measurements. The required spatiotemporal resolution also exceeds the spatiotemporal resolution of multispectral surface reflectance data of spaceborne remote sensing instruments. While Landsat may have a sufficient spatial resolution, it lacks temporal resolution; conversely, while moderate resolution sensors such as (+MODIS) and (+VIIRS) have a sufficient temporal resolution, they lack spatial resolution. Since their pixels (aka (+^IFOV)) are too large to observe pure constituents, it, therefore, is necessary to map snow cover at sub-pixel accuracy [@Dozier2004].
+Conversely, remote sensing can provide spatiotemporally continuous data on the global extent of snow [@Dozier2004; @Nolin2010]: Snow extent can be retrieved from multispectral surface reflectance data and from (passive and active) microwave [@Frei2012] data. Global active microwave data is limited in time (e.g., QuickSCAT from 1999 to 2009). Global passive microwave data has been continuously available since the 1970, but only at coarse spatial resolutions ($\approx \SI{25}{\kilo\meter}$). Specifically for mountainous regions characterized by high topographic relief, spatial resolutions need to be fine enough to capture the temporal and spatial variability of the snowpack. [@Lettenmaier2015] suggests spatial resolutions of snow extent not coarser than $\approx \SI{100}{\meter}$ and temporal resolution of not more than one week. Hence, passive microwave data is unsuitable for mountainous area snow extent measurements. The required spatiotemporal resolution also exceeds the spatiotemporal resolution of multispectral surface reflectance data of spaceborne remote sensing instruments. While Landsat may have a sufficient spatial resolution, it lacks temporal resolution; conversely, while moderate resolution sensors such as the (+MODIS) and the (+VIIRS) have a sufficient temporal resolution, they lack spatial resolution. Since their pixels (aka (+^IFOV)) are too large to observe pure constituents, it, therefore, is necessary to map snow cover at sub-pixel accuracy [@Dozier2004].
 
-Several algorithms to classify pixels into 'snow' or 'non-snow' (i.e., binary snowmaps) as well as algorithms to estimate (+fSCA) (i.e., sub-pixel) from multispectral surface reflectance data exist [@Nolin2010]. Both snow and clouds are highly reflective in the visible part of the spectrum. However, contrary to clouds, snow is highly absorptive in the (+SWIR) part of the spectrum, allowing us to distinguish snow from clouds by using the ratio of visible and (+SWIR) [@Hall2011] surface reflectances. With the launch of Landsat 4 (+TM), which included sensors for (+SWIR), it became possible to discriminate snow from clouds on a global scale [@Lettenmaier2015] for the first time. [@Dozier1989] introduced the normalized differences of a visible band and a (+SWIR) band (later termed (+NDSI) [@Hall1995]) to identify snow. The appeal of (+NDSI) lies in its simplicity:  An observation/pixel is identified as snow if its (+NDSI) exceeds a threshold, typically 0.4 [@Dozier1989; @Hall1995].
+Several algorithms to classify pixels into 'snow' or 'non-snow' (i.e., binary snowmaps) as well as algorithms to estimate (+fSCA) (i.e., sub-pixel) from multispectral surface reflectance data exist [@Nolin2010]. Both snow and clouds are highly reflective in the visible part of the spectrum. However, contrary to clouds, snow is highly absorptive in the (+SWIR) part of the spectrum, allowing us to distinguish snow from clouds by using the ratio of visible and (+SWIR) [@Hall2011] surface reflectances. With the launch of Landsat 4 (+TM), which included sensors for (+SWIR), it became possible to discriminate snow from clouds on a global scale for the first time [@Lettenmaier2015]. [@Dozier1989] introduced the normalized differences of a visible band and a (+SWIR) band (later termed (+NDSI) by [@Hall1995]) to identify snow. The appeal of (+NDSI) lies in its simplicity:  An observation/pixel is identified as snow if its (+NDSI) exceeds a threshold, typically 0.4 [@Dozier1989; @Hall1995].
 
 $$NDSI = \frac{R\lambda(VIS)-R\lambda(SWIR)}{R\lambda(VIS)+R\lambda(SWIR)}$$
 
-A challenge in snow-cover mapping is trees obscuring the snow beneath the canopy. [@Klein1998] introduced a combination of (+NDVI) and (+NDSI) to reduce the error of snow cover detection in dense vegetation. The approach was adapted by [@Hall2002; @Hall2001] to introduce the operational global level-3 snow mapping products for (+MODIS) and (+VIIRS) (MOD10A1[^mod10a1]/VNP10A1[^VNP10A1]). The approach also includes thermal masks to identify "spurious snow": A pixel is determined not to be snow if its temperature is greater \SI{277}{\kelvin}). 
+A challenge in snow-cover mapping is trees obscuring the snow beneath the canopy. [@Klein1998] introduced a combination of (+NDVI) and (+NDSI) to reduce the error of snow cover detection in dense vegetation. The approach was adapted by [@Hall2002; @Hall2001] to introduce the operational global level-3 snow mapping products for (+MODIS) and (+VIIRS) (MOD10A1[^mod10a1]/VNP10A1[^VNP10A1]). The approach also includes thermal masks to identify "spurious snow": A pixel is determined not to be snow if its temperature is greater \SI{277}{\kelvin}. 
 
 [^mod10a1]: [@MOD10A1]. [DOI: 10.5067/MODIS/MOD10A1.006](https://dx.doi.org/10.5067/MODIS/MOD10A1.006)
 
@@ -68,9 +68,13 @@ $$minimize \sqrt{\sum_{k_\lambda=0}^{n} \epsilon_\lambda^2}$$
 
 The (+SPIReS) algorithm follows a similar approach. However, rather than solving for the non-snow endmembers, (+SPIReS) exploits the fact that for any given location (in the following referred to as a grid cell), the (mixed) non-snow endmember spectrum $R_0$ can be measured during the summer[^summer]. (+SPIReS) uses a snow-free endmember reflectance library containing a single snow-free spectrum for each grid cell. This single snow-free reflectance spectrum is selected from all measured spectra for a given grid cell subject to a set of criteria: The snow-free spectrum must not be quality flagged, be cloud and cloud shadow-free, and have an (+NDSI) of less than zero. From the spectra that pass those criteria, the spectrum with the highest (+NDVI) is selected as the snow-free reference spectrum[^exception]. Additional advancements of (+SPIReS) include a correction for canopy cover, persistence filters to eliminate false-positive caused by cloud presence, temporal smoothing, and cell clustering in which similar cells are grouped prior to computing to improve performance.
 
+![The measured spectrum $R$ which was observed under fractionally snow-covered conditions. The snow-free reference spectrum $R0$ was observed under snow-free conditions. (+SPIReS) solved for the solution and thereby was able to estimate the (+fSCA), the fractional shade, the snow grain size and the (+LAP) concentration. Figure 2 from [@Bair2021], which was licensed under Creative Commons Attribution 4.0 License.](images/C3/spires.pdf)
+
 [^summer]: This, of course, excludes regions of permanent snow cover, such as the arctic regions or glaciers
 
 [^exception]:  If no spectrum with an (+NDSI) of less than zero exists for a given cell, the spectrum with the lowest band-3 reflectance is selected. 
+
+\clearpage
 
 # SPIReS uncertainty and possible causes 
 > "location, location, location."
@@ -87,7 +91,7 @@ While the gridded products bring the above-stated simplifications, they also int
 
 [^L2G]: MOD09GA actually is an "(+L2G)" product, a hybrid between level 2 and level 3. In addition to the level 3 data, (+L2G) products contain "additional observations" for each cell. Those additional observations are values binned to a cell but not selected as the best observation in the composition step.
 
-![Geolocation of MOD09 observations at \SI{500}{\meter} resolution associated with a single (+MODIS) grid cell for January 2021. \label{redslake_centers}](images/C3/redslake_locations.png)
+![Geolocation of MOD09 observations at \SI{500}{\meter} resolution associated with a single (+MODIS) grid cell in the Region of Mammoth Lakes, California for January 2021. \label{redslake_centers}](images/C3/redslake_locations.png)
 
 The spatial binning of MOD09GA reduces the spatial resolution by one order of magnitude: While the geolocations of individual (+^IFOV) are precise to approximately \SI{50}{\meter} [@Wolfe2002], they get binned into grid cells of approximately \SI{500}{\meter}. Figure \ref{redslake_centers} shows the wide spread of (+MODIS) (+^IFOV) center locations associated with a single cell.
 
@@ -99,7 +103,7 @@ The actual extent/footprint of each (+IFOV) thus varies significantly in size an
 
 ![Center locations (colored dots) and estimated footprints (colored polygons) of 4 (+^IFOV) in January 2021 associated with the same (+MODIS) cell (black outline). \label{footprints}](images/C3/footprints.png)
 
-Specifically, in the mountains, characterized by high topographic variability, the irregularity of the actual (+IFOV) footprints leads to significant noise in derived estimands. Figure \ref{gridded_timeline} displays the time series of (+NDSI), (+NDVI), and (+fSCA) estimates from SPIReS[^visible_snow] for a _seemingly_ fixed location: a (+MODIS) grid cell at Reds Lake in Mammoth. We observe strong (+NDVI), (+NDSI), and (+fSCA) fluctuations. We also note that the estimated (+fSCA) stays well above `0` during the late summer months, for which we know the area was snow-free. Uncertainties in the atmospheric corrections, cloud cover and shadow, smoke presence, and variations in the solar and sensor zenith may explain some of the noise. In the following, we will demonstrate that the gridding introduces a large portion of the noise: The estimands in figure \ref{gridded_timeline} are only seemingly for a fixed location. In reality, the underlying observations' footprints dramatically vary in size and center location. It is thus not that the (+fSCA) estimates from SPIReS necessarily are inherently noisy; the estimates simply were made for varying footprints, some of which have larger (+fSCA) than others.
+Specifically, in the mountains, characterized by high topographic variability, the irregularity of the actual (+IFOV) footprints leads to significant noise in derived estimands. Figure \ref{gridded_timeline} displays the time series of (+NDSI), (+NDVI), and (+fSCA) estimates from SPIReS[^visible_snow] for a _seemingly_ fixed location: a (+MODIS) grid cell at Reds Lake in Mammoth. We observe strong (+NDVI), (+NDSI), and (+fSCA) fluctuations. We also note that the estimated (+fSCA) stays well above `0` during the late summer months, for which we know the area was snow-free. Uncertainties in the atmospheric corrections, cloud cover and shadow, smoke presence, and variations in the solar and sensor zenith may explain some of the noise. In the following, we will demonstrate that the gridding introduces a large portion of the noise: The estimands in figure \ref{gridded_timeline} are only seemingly for a fixed location. In reality, the underlying observations' footprints dramatically vary in size and center location. It is thus not that the (+fSCA) estimates from SPIReS necessarily are inherently noisy; the estimates simply were made for varying footprints, some of which having larger (+fSCA) than others.
 
 [^visible_snow]: The fractional snow cover estimates are for visible snow only.
 
@@ -107,7 +111,7 @@ Specifically, in the mountains, characterized by high topographic variability, t
 
 The question consequently arises of how the accuracy of any derived product, in general, and the (+fSCA) estimations, in particular, should be evaluated. Gridded products may tempt the assumption that each (+fSCA) estimate is for the footprint of a grid cell. Under this assumption, we may find observations of a (higher resolution binary) ground-truth dataset intersecting the grid cell and compare the (+fSCA) estimation with the ground-truth data. The assumption, however, is false and causes the accuracy of the (+fSCA) estimates to appear much worse than they are. Instead, the actual footprint of each observation has to be considered, and the ground truth observations covering this footprint have to be found for the evaluation. Figure \ref{cell_vs_ifov} visualizes the issue: While the (+fSCA) is computed for the actual (+IFOV)footprint (red), it will be evaluated against data covering the cell if we naively use gridded data.
 
-![A cell (blue) and the estimated footprint of an (+IFOV)(red) overlayed over a binary snowmap (white) derived from Worldview legion data at \SI{0.5}{\meter} resolution. Note how significantly more than half of the cell is snow-covered while the (+IFOV)'s footprint is less than half snow-covered. Also note that the cell appears to be about 1/3 forest covered, while the (+IFOV)'s footprint appears to be more than half forest. \label{cell_vs_ifov}](images/C3/cell_vs_ifov.png)
+![A cell (blue) and the estimated footprint of an (+IFOV)(red) overlayed over a binary snowmap (white) derived from Worldview legion data at \SI{0.5}{\meter} resolution [@Stillinger_Bair_2020]. Note how significantly more than half of the cell is snow-covered while the (+IFOV)'s footprint is less than half snow-covered. Also note that the cell appears to be about 1/3 forest covered, while the (+IFOV)'s footprint appears to be more than half forest. \label{cell_vs_ifov}](images/C3/cell_vs_ifov.png)
 
 The location uncertainty introduces an additional issue specifically for (+SPIReS): (+SPIReS) does not solve for the snow-free endmembers of a fractionally snow-covered observation but instead uses a snow-free observation of the same location as the snow-free endmember. If gridded products are used, the snow-free observations for the "same" location is a (snow-free) observation associated with the same grid cell. Since the gridding blurred the location of the footprints of the observations, this snow-free observation may be for a different area than the fractionally snow-covered observation (even though they have been binned to the same grid cell). It is, e.g., conceivable that a fractionally snow-covered observation covers a region consisting of snow and forest while the associated snow-free observation covers a region consisting of soil and rock. 
 
@@ -119,8 +123,10 @@ Finally, a concern is that MOD09GA contains merely the sensors' zenith angles bu
 
 ![(+NDVI) for a fixed location at Reds lake in Mammoth (to the precision of \SI{50}{\meter}) for varying along-scan positions. Note that the off-nadir observations have higher (+NDVI) for observations in which the sensor looks east onto the location. \label{leftright}](images/C3/redslake_NDVI.png)
 
-Figure \ref{leftright} shows (+NDVI) values for observations at a fixed location at Reds Lake in Mammoth (within a radius of \SI{50}{\meter}). C.f. figure \ref{ndvi_locs}) under varying viewing geometries (here represented as the along-scan position). The asymmetry demonstrates the influence of the viewing geometry on the reflectance spectrum: 
-When the sensor passes east of the observed location and thus is looking west (i.e., low along-scan position), it observes the eastern face of _Top of Chair 14_ (_Chair 23 Area_), which is mainly exposed rock (c.f. figure top \ref{eastwest}). However, when the sensor passes west of the observed location and thus is looking east (i.e., high along-scan position), it observes the western face below the _Chair 14 lift line_, which is covered with sparse trees (c.f. figure bottom \ref{eastwest}). 
+Figure \ref{leftright} shows (+NDVI) values for observations at a fixed location at Reds Lake in Mammoth (within a radius of \SI{50}{\meter}) (C.f. figure \ref{ndvi_locs}) under varying viewing geometries (here represented as the along-scan position). The asymmetry demonstrates the influence of the viewing geometry on the reflectance spectrum: 
+When the sensor passes east of the observed location and thus is looking west (i.e., low along-scan position)\footnote{terrapath}, it observes the eastern face of _Top of Chair 14_ (_Chair 23 Area_), which is mainly exposed rock (c.f. figure top \ref{eastwest}). However, when the sensor passes west of the observed location and thus is looking east (i.e., high along-scan position), it observes the western face below the _Chair 14 lift line_, which is covered with sparse trees (c.f. figure bottom \ref{eastwest}). 
+
+[^terrapath]: For daytime estimations, Terra is flying south. The scan mirror is rotating clockwise. Therefore a scan begins with (+MODIS) looking west and ends with (+MODIS) looking east.
 
 \begin{figure}
 	\includegraphics[width=\textwidth]{images/C3/east.png}
@@ -142,23 +148,23 @@ Therefore, any fractionally snow-covered observation should be associated with a
 \newpage
 
 # STARE Approach
-In order to circumvent the introduction of uncertainties by gridding, we need to forego gridded data and work with ungridded level 2 data (i.e., MOD09/VNP09MOD). Working with ungridded data is cumbersome with conventional technologies. We, therefore, use the alternative geolocation representation (+STARE). (+STARE) firstly enables us to associate each observation with a snow-free observation at approximately the same location, recorded under similar viewing geometries. Secondly, (+STARE) allows us to evaluate the accuracy of the (+fSCA) estimates by comparing them to "ground-truth" data for the approximate footprints of each (+IFOV).
+In order to circumvent the introduction of uncertainties by gridding, we need to forego gridded data and work with ungridded level 2 data (i.e., MOD09/VNP09MOD). Working with ungridded data is cumbersome with conventional technologies. We, therefore, use the alternative geolocation representation (+STARE). (+STARE) firstly enables us to associate each observation with a snow-free observation at approximately the same location and recorded under similar viewing geometries. Secondly, (+STARE) allows us to evaluate the accuracy of the (+fSCA) estimates by comparing them to "ground-truth" data for the approximate footprints of each (+IFOV).
 
 The remainder of the chapter is structured as follows: We first give a quick overview of (+STARE). We then describe the data preparation and the creation of our snow-free reflectance library. Finally, we describe our evaluation methods and display metrics on the accuracy improvements achieved.
 
 ## STARE primer
 (+STARE), described in chapter 2 and in [@Rilee2021; @Rilee2020a; @Rilee2019; @Rilee2016; @Kuo2017], is an alternative spatial geolocation representation based on a (+HTM). Rather than expressing points as, e.g., latitudes and longitudes, (+STARE) express locations/points as nodes (aka trixels) in the (+HTM), and arbitrarily shaped regions (polygons) as sets of trixels (c.f. figure. \ref{stare_polygon}).
 
-![A polygon (blue) and its representation as a set of trixels that cover it (yellow). A point (red star) is represented by a single trixel (red triangle) at a chosen (+STARE) level. \label{stare_polygon}](images/C2/stare_polygon.png)
+![A polygon (blue) and its representation as a set of trixels that cover it (yellow). A point (red star) is represented by a single trixel (red triangle) at a chosen (+STARE) level. \label{stare_polygon}](images/C2/stare_polygon.png){width=90%}
 
-(+STARE) might appear to be yet another gridding approach, using triangular instead of rectangular cells. However, contrary to conventional gridding, the grid resolution (the size of the bins into which individual observations are binned) is not fixed but adaptive. This brings immense advantages when working with variable data resolutions, both between datasets, and within the same datasets. In (+STARE), identifying the intersection of irregularly shaped and spaced data at varying resolutions is trivial. We thus do not have to decide apriori on a grid resolution into which we have to bin data; instead, we can preserve the original resolution of the data.
+(+STARE) might appear to be yet another gridding approach, using triangular instead of rectangular cells. However, contrary to conventional gridding, the grid resolution (the size of the bins into which individual observations are binned) is not fixed but adaptive. This brings immense advantages when working with variable data resolutions, both between datasets, and within the same datasets. With (+STARE), identifying the intersection of irregularly shaped and spaced data at varying resolutions is trivial. We thus do not have to decide apriori on a grid resolution into which we have to bin data; instead, we can preserve the original resolution of the data.
 
 The (+STARE) concept is implemented in a collection of software, described in chapter 2. The collection contains software to convert conventional location representations into (+STARE) representations, various storage backends, and the ability to perform (+STARE)-based geoprocessing (such as unions, intersections, and dissolves) and geospatial analysis.
 
 ## Data Preparation
-Our study area (+ROI) is around Mammoth Lakes in the eastern Sierra Nevada, spanning from Lake Thomas Edison to June Lake (c.f. figure. \ref{roi}).
+Our study area (+ROI) is around Mammoth Lakes in the eastern Sierra Nevada, spanning from Lake Thomas Edison to June Lake (c.f. figure. \ref{roi_img}).
 
-We acquired all Level 2 (+MODIS)/Terra atmospherically corrected surface reflectance granules (MOD09[^mod09]) and their corresponding geolocation companion granules (MOD03[^mod03]) for the entire sensor lifetime from 2000-02-24 until 2022-09-15 (a total of \num{26466} granules, containing a total of \num{145e9} (+^IFOV), \num{243e6} of which intersecting our (+ROI)). We additionally acquired moderate-resolution VIIRS/Suomi surface reflectance granules (VNP09[^vnp09]) and their corresponding geolocation companion granules (VNP03MOD[^vnp03mod]) for the entire sensor lifetime from 2012-01-19 to 2022-09-15. We also acquired all gridded MOD09GA[^mod09ga] granules for tile H08V05[^ladsweb_dl] for verification purposes.
+We acquired all Level 2 (+MODIS)/Terra atmospherically corrected surface reflectance granules (MOD09[^mod09]) and their corresponding geolocation companion granules (MOD03[^mod03]) for the entire sensor lifetime from 2000-02-24 until 2022-09-15 (a total of \num{26466} granules, containing a total of \num{145e9} (+^IFOV), \num{243e6} of which intersecting our (+ROI)). We additionally acquired moderate-resolution (+VIIRS)/Suomi surface reflectance granules (VNP09[^vnp09]) and their corresponding geolocation companion granules (VNP03MOD[^vnp03mod]) for the entire sensor lifetime from 2012-01-19 to 2022-09-15. We also acquired all gridded MOD09GA[^mod09ga] granules for tile H08V05[^ladsweb_dl] for verification purposes.
 
 [^vnp09]: [@VNP09]. [DOI: 10.5067/VIIRS/VNP09.001](https://dx.doi.org/10.5067/VIIRS/VNP09.001)
 
@@ -168,7 +174,7 @@ We acquired all Level 2 (+MODIS)/Terra atmospherically corrected surface reflect
 
 [^ladsweb_dl]: we used the ladsweb_downloader to download all granules. Ladsweb_downloader is available at [https://github.com/NiklasPhabian/ladsweb_downloader](https://github.com/NiklasPhabian/ladsweb_downloader).
 
-![Region of interest of our study area (red) in the region of Mammoth lakes spanning from Lake Thomas Edison to June Lake. (BBOX: -119.14, 37.4: -118.96, 37.8). \label{roi}](images/C3/roi.pdf)
+![Region of interest of our study area (red) in the region of Mammoth lakes spanning from Lake Thomas Edison to June Lake. (BBOX: -119.14, 37.4: -118.96, 37.8). \label{roi_img}](images/C3/roi.pdf){width=90%}
 
 We then created (+STARE) sidecar companion files for each granule. (+STARE) sidecar companion files contain the geolocation for each (+IFOV) in (+STARE) representation. They are thus analogous to the MOD03/VNP03* companion files, which contain the geolocation of each (+IFOV) in WGS84 coordinates. The MOD09 granules contain surface reflectances at \SI{1000}{\meter}, \SI{500}{\meter}, and \SI{250}{\meter} resolution. However, (+MODIS) geolocations are only distributed at \SI{1000}{\meter} resolution. Since we intend to use the \SI{500}{\meter} surface reflectances, we implemented a geolocation interpolation algorithm, described in section \ref{resadaption}.
 
@@ -183,13 +189,13 @@ The (+MODIS) Level 1A Earth Location (+ATBD) [@MashNishihamaRobertWolfe1997]  st
 
 [^github]: A private communication with the (+MODIS) support team contradicts this statement and suggests the following ([from github](https://github.com/SpatioTemporal/STAREmaster/issues/42#issuecomment-678774303)) "Since the (+MODIS) geolocation is estimated at 1km only, [..] it is provided for 1km datasets only. The best way to use the 1m geolocation will be to co-locate each 500m/250m observations within the corresponding 1km pixel and then use the corresponding 1km geolocation."
 
-![Pixel nesting of the \SI{1}{\kilo\meter}, \SI{500}{\meter}, and \SI{250}{\m eter} resolutions of MODIS. Source: Figure 2-8 of (+MODIS) Level 1A Earth Location  [@MashNishihamaRobertWolfe1997]. \label{pixel_nesting}](images/C3/modis_pixel_nesting.pdf)
+![Pixel nesting of the \SI{1}{\kilo\meter}, \SI{500}{\meter}, and \SI{250}{\m eter} resolutions of MODIS. Source: Figure 2-8 of (+MODIS) Level 1A Earth Location  [@MashNishihamaRobertWolfe1997]. \label{pixel_nesting}](images/C3/modis_pixel_nesting.pdf){width=60%}
 
 This is visible in figure \ref{pixel_nesting}. [@Wolfe2002] further explains: 
 
 > "To the first order, the (+MODIS) point-spread function is triangular in the scan direction. The centers of the integration areas of the first observation in each scan are aligned, in a 'peak-to-peak' alignment. ". And: "In the track direction, the point-spread function is rectangular and the observations at the different resolutions are nested, allowing four rows of 250 m observations and two rows of 500 m observations to cover the same area as one row of 1 km observations."
 
-![MODIS triangular point-spread function for all resolutions. Figure 3-13 of the (+MODIS) Level 1A Earth Location: [@MashNishihamaRobertWolfe1997]. \label{pointspread}](images/C3/sampling_rates.pdf)
+![MODIS triangular point-spread function for all resolutions. Figure 3-13 of the (+MODIS) Level 1A Earth Location: [@MashNishihamaRobertWolfe1997]. \label{pointspread}](images/C3/sampling_rates.pdf){width=60%}
 
 This is visualized in figure \ref{pointspread}. The (+MODIS) Level 1B User Guide [@Toller2009] further suggests:
 
@@ -203,17 +209,17 @@ We combined these pieces of information in our geolocation interpolation algorit
 
 Figures \ref{500_start}, \ref{500_center}, and \ref{500_end} display the original \SI{1000}{\meter} resolution geolocations (red) and the interpolated \SI{500}{\meter} geolocations (blue) for one and a half \SI{1000}{\meter} scan groups at the beginning (\ref{500_start}), the center (\ref{500_center}), and the end (\ref{500_end}) of a scan. Note how six \SI{500}{\meter} resolution observations nest into one \SI{1000}{\meter} resolution observation.
 
-[^get_500m]: [STAREMaster's \SI{500}{\meter} interpolation function on GitHub](https://github.com/SpatioTemporal/STAREMaster_py/blob/eb17c1a50cfb66de4a3737fbfc65f1855479ca7d/staremaster/products/mod09.py#L33)
+[^get_500m]: [STAREMaster's \SI{500}{\meter} interpolation function on GitHub](https://github.com/SpatioTemporal/STAREMaster_py/blob/eb17c1a50cfb66de4a3737fbfc65f1855479ca7d/staremaster/products/mod09.py#L33){width=90%}
 
 ![MODIS Geolocations of the \SI{1}{\kilo\meter} resolution (red) and their \SI{500}{\meter} interpolations for the first 1.5 scan groups and the first ten observations in scan direction at the beginning of a scan. \label{500_start}](images/C3/500m_start.png)
 
-![MODIS Geolocations of the 1km resolution (red) and their \SI{500}{\meter} interpolations for 1.5 scan groups at the center of a scan (at nadir). \label{500_center}](images/C3/500m_center.png)
+![MODIS Geolocations of the 1km resolution (red) and their \SI{500}{\meter} interpolations for 1.5 scan groups at the center of a scan (at nadir). \label{500_center}](images/C3/500m_center.png){width=90%}
 
-![MODIS Geolocations of the 1km resolution (red) and their \SI{500}{\meter} interpolations for the first 1.5 scan groups and the last ten observations in scan direction at the end of a scan. \label{500_end}](images/C3/500m_end.png)
+![MODIS Geolocations of the 1km resolution (red) and their \SI{500}{\meter} interpolations for the first 1.5 scan groups and the last ten observations in scan direction at the end of a scan. \label{500_end}](images/C3/500m_end.png){width=90%}
 
 
 ## IFOV approximation \label{sec_IFOV}
-In order to evaluate the accuracy of a sub-pixel estimand in general and the (+fSCA) from (+SPIReS) in particular, we compare the estimated values against ground truth data. In practice, the ground truth data will often be binary data derived from sensors with higher spatial resolutions. E.g., a (+MODIS) (+IFOV) at nadir may have an approximate footprint of $\SI{500}{\meter} \;x\; \SI{500}{\meter}$[^cell_size], covering about 250 Landsat pixels. 
+In order to evaluate the accuracy of a sub-pixel estimands in general and the (+fSCA) from (+SPIReS) in particular, we compare the estimated values against ground truth data. In practice, the ground truth data will often be binary data derived from sensors with higher spatial resolutions. E.g., a (+MODIS) (+IFOV) at nadir may have an approximate footprint of $\SI{500}{\meter} \;x\; \SI{500}{\meter}$[^cell_size], covering about 250 Landsat pixels. 
 
 [^cell_size]: The actual cell size is $w * w$. With  $w = T / n= \SI{463.31271653}{\meter}$.  $T=\SI{1111950}{\meter}$ is the height and width of each (+MODIS) tile in the projection plane, and $n=2400$ the number of cells in a (+MODIS) tile in width and height direction [@Meister2008].
 
@@ -223,7 +229,7 @@ Comparing subpixel estimands of an (+IFOV) against verification data requires us
 
 The first approximation assumes that the (+IFOV)'s footprint is a circle around the geolocation with a constant diameter equaling the nominal resolution, i.e., \SI{500}{\meter} for (+MODIS) and \SI{750}{\meter} for (+VIIRS). 
 
-The second approximation assumes that the (+IFOV)'s footprint has the shape of an ellipse. We use the fact that we have some idea of the distortion introduced by the sensor's zenith angle. From the (+MODIS) Level 1A Earth Location (+ATBD) [@MashNishihamaRobertWolfe1997], we know that the resolution of a \SI{1}{\kilo\meter} spatial element at a \SI{55}{\degree} scan angle has ground dimensions of approximately \SI{4800}{\meter} along-scan and \SI{2000}{\meter} along-track. We can further derive a relation between scan angle (sensor zenith) and along-scan and along-track (+IFOV) size (c.f. figure \ref{ifov_growth}.) We approach it with the following: 
+The second approximation assumes that the (+IFOV)'s footprint has the shape of an ellipse. We use the fact that we have some idea of the distortion introduced by the sensor's zenith angle. From the (+MODIS) Level 1A Earth Location (+ATBD) [@MashNishihamaRobertWolfe1997], we know that the resolution of a \SI{1}{\kilo\meter} spatial element at a \SI{55}{\degree} scan angle has ground dimensions of approximately \SI{4800}{\meter} along-scan and \SI{2000}{\meter} along-track. We can further derive a relation between scan angle (sensor zenith) and along-scan and along-track (+IFOV) length (c.f. figure \ref{ifov_growth}.) We approach it with the following: 
 
 $$ length = \frac{e^{a*x}}{b} + c$$
 
@@ -247,14 +253,14 @@ Our thesis is that we can improve the accuracy of (+SPIReS)' (+fSCA) estimates b
 
 [^drift]: [https://terra.nasa.gov/about/terra-orbital-drift-information](https://terra.nasa.gov/about/terra-orbital-drift-information?_ga=2.113741903.959412644.1666982590-2093997614.1657309207)
 
-[^scan]: (+MODIS) flies south and scans west to east for daytime observations.
+[^scan]: Terra flies south and MODIS scans west to east for daytime observations.
 
 The along-scan position is a proxy for the viewing geometry. It gives us information about the sensor zenith (and thus the extent of the (+IFOV)) and whether the sensor looked left, right, or (approximately) straight down. Since we want to find a $R_0$ for every $R$ observed under a similar viewing geometry, we discretize the along-scan position at different resolutions. At a discretization of 1, we do not distinguish between different viewing geometries. At a discretization of 2, we only distinguish whether the sensor looked left or right. At a discretization of 3, we distinguish between the sensor looking left, right, or approximately straight down. At higher discretizations, we add further fidelity to the viewing geometry.
 
 ## Snow-Free Reflectance (R<sub>0</sub>) Library
 To compute the (+fSCA) for a reflectance spectrum $R$ observed for a given location, (+SPIReS) requires a snow-free reflectance spectrum $R_0$ for the same location. The question of what "same location" means immediately arises, considering that each observation has a unique geolocation and footprint. One could find the spatially closest observation by evaluating geodesic distances. However, evaluating possibly trillions of distances ad-hoc is computationally infeasible. The correct answer is that some degree of location discretization is required. 
 
-Discretization enables us to bin observations sufficiently close to each other and consider them spatially coincidental. When using the standard gridded surface reflectance products, we assume every observation binned to the same grid cell is spatially coincident. As previously stated, our thesis is that this is a too strong a coarsening the geolocation is known to at least an order of magnitude higher precision. We thus create a $R_0$ library at a higher spatial resolution.
+Discretization enables us to bin observations sufficiently close to each other and consider them spatially coincidental. When using the standard gridded surface reflectance products, we assume every observation binned to the same grid cell is spatially coincident. As previously stated, our thesis is that this is a too strong a coarsening specifically since the geolocation is known to have at least an order of magnitude higher precision. We thus create a $R_0$ library at a higher spatial resolution.
 
 The algorithm for finding a $R_0$ for each grid cell works as follows[^create_r0]:
 
@@ -278,12 +284,13 @@ For each cell:
 
 We adapt this algorithm to create $R_0$ for (+STARE) trixels rather than for grid cells and create $R_0$ libraries at different (+STARE) quadfurcation levels. We additionally take the viewing geometry, represented by the along-scan position, into account. The choices of the quadfurcation level and the along-scan position discretization are a tradeoff. While conceptually, we want a high resolution in geolocation and viewing geometry, we decrease the number of candidate snow-free reflectances per bin with increasing resolution. If the count of the number of candidates per bin is too low, we may not find good (i.e., cloud-free, snow-free, and not quality-flagged) snow-free spectra.
 
-At the latitude of our (+ROI), a \SI{500}{\meter} x \SI{500}{\meter} cell is roughly observed once per day (i.e., the revisit period is one day). 8239 days (from 2000-02-24 to 2022-09-15) thus gives 8239 candidate spectra to choose from when discretizing to the (+MODIS) grid cells. A (+STARE) trixel at quadfurcation level 14 has roughly the same area as a (+MODIS) grid cell. We thus expect roughly one observation per day falling into a level 14 trixel. At level 15, we expect the revisit period to be $ 1/4 $ of that since a level 15 trixel is four times smaller than a level 14 trixel. 
+#### Approaching an appropriate discretization level:
+At the latitude of our (+ROI), a \SI{500}{\meter} x \SI{500}{\meter} cell is roughly observed once per day (i.e., the revisit period is one day). A data duration of 8239 days (from 2000-02-24 to 2022-09-15) thus gives us 8239 candidate spectra to choose from when discretizing to the (+MODIS) grid cells. A (+STARE) trixel at quadfurcation level 14 has roughly the same area as a (+MODIS) grid cell. We thus expect roughly one observation per day falling into a level 14 trixel. At level 15, we expect the revisit period to be $1/4$ of that since a level 15 trixel is four times smaller than a level 14 trixel. 
 
 Table: Approximate trixel areas, edge lengths, and (+MODIS) revisit periods and total visits for the data duration of 8239 days \label{trixel_sizes}
 
-|   Level | Area                          | Edge                  | Revisit Period   |    n Visits |
-|--------:|:------------------------------|:----------------------|----------------: |------------:|
+|   Level | Area ($A_{trixel}$)           | Edge ($l_{trixel}$)                   | Revisit Period   |    n Visits |
+|--------:|:-------------------------- |:----------------------|----------------: |------------:|
 |      12 | \SI{5.11e+06}{\meter\squared} | \SI{3.20e+03}{\meter} | 0.05 days        | 167 544.0   |
 |      13 | \SI{1.28e+06}{\meter\squared} | \SI{1.60e+03}{\meter} | 0.20 days        |  41 885.9   |
 |      14 | \SI{3.19e+05}{\meter\squared} | \SI{7.99e+02}{\meter} | 0.78 days        |  10 471.5   |
@@ -292,7 +299,7 @@ Table: Approximate trixel areas, edge lengths, and (+MODIS) revisit periods and 
 |      17 | \SI{4.99e+03}{\meter\squared} | \SI{9.99e+01}{\meter} | 50.08 days       |     163.6   |
 |      18 | \SI{1.25e+03}{\meter\squared} | \SI{5.00e+01}{\meter} | 200.32 days      |      40.9   |
 
-Table \ref{trixel_sizes} displays the areas and edge lengths of trixels at varying quadfurcation levels. It also contains the estimated _revisit periods_ which is the nominal resolution divided by the area of the trixels, assuming one overpass per day. It is to be understood as the maximum revisit period. The column _visit count_ is the revisit period multiplied by the data duration (8239 days). It gives us a rough approximation of how many candidate spectra we will have per spatial bin.
+Table \ref{trixel_sizes} displays the areas and edge lengths of trixels at varying quadfurcation levels. It also contains the estimated _revisit periods_ which is the nominal resolution divided by the area of the trixels, assuming one overpass per day. It is to be understood as the maximum revisit period. Revisit periods of less than 1 indicate that multiple observations per day fall into the trixel. The column _n Visits_ is the revisit period multiplied by the data duration (8239 days). It gives us a rough approximation of how many candidate spectra we will have per spatial bin.
 
 Note that the average trixel area $A_{trixel}$  and edge length $l_{trixel}$ may be naively computed as indicated below. However, depending on the position of the trixels in the initial solid's faces, the trixel areas vary across the globe. Table \ref{trixel_sizes} shows the actual areas and lengths computed for trixels in our (+ROI).
 
@@ -307,7 +314,7 @@ $$
 
 The (+MODIS) geolocation precision is approximately \SI{50}{\meter} [@Wolfe2002] (\SI{2.5e3}{\meter\squared}), matching trixel areas at quadfurcation level between 16 and 17. This gives us the upper bound for the quadfurcation level. A cell with an edge length of \SI{463.3}{\meter} has an area of \SI{2.14e5}{\meter\squared}, matching quadfurcation level between 14 and 15, giving us the lower bound for the quadfurcation level.
 
-We created $R_0$ libraries for quadfurcation levels 14 to 17 using the same logic as in listing \ref{r0_algo}. We then further binned the observations for each trixel by their viewing geometry, discretized in 1 to 7 groups. This would lead to a total of 28 $R_0$ libraries. We recognize we have too few candidate spectra at high spatial resolution and viewing geometry discretization. We, therefore, discarded the $R_0$ libraries with quadfurcation levels above 16 and[^and] viewing geometry discretizations above 4. This leaves us with a total of 22 $R_0$ libraries. 
+We created $R_0$ libraries for quadfurcation levels 14 to 17 using the same logic as stated above. We then further binned the observations for each trixel by their viewing geometry, discretized in 1 to 7 groups. This would lead to a total of 28 $R_0$ libraries. We recognize we have too few candidate spectra at high spatial resolution and viewing geometry discretization. We, therefore, discarded the $R_0$ libraries with quadfurcation levels above 16 and[^and] viewing geometry discretizations above 4. This leaves us with a total of 22 $R_0$ libraries. 
 
 [^and]: logical and
 
@@ -324,23 +331,23 @@ Table: Number of observations that fell into trixels at varying quadfurcation le
 |      18 |  49        | 
 
 
-![Number of observations that fell into each trixel of a level 15 (+STARE) grid over our ROI. Each cell had more than 1400 observations. \label{r0}](images/C3/r0.png){height=600px}
+![Number of observations that fell into each trixel of a level 15 (+STARE) grid over our ROI. Each cell had more than 1400 observations. \label{r0}](images/C3/r0.png){height=700px}
 
 ## Computation of fSCA
-To compute the (+fSCA) in our (+STARE) approach for a given reflectance spectrum $R$, we proceed as follows: First, we choose the discretization level of our $R_0$ library. This means we a) select a spatial resolution ((+STARE) quadfurcation level) at which we evaluate spatial coincidence, and 
+To compute the (+fSCA) in our (+STARE) approach for set of reflectance observations $O$, we proceed as follows: First, we choose the discretization level of our $R_0$ library. This means we a) select a spatial resolution ((+STARE) quadfurcation level) at which we evaluate spatial coincidence, and 
 b) select a viewing geometry discretization. 
 
-Secondly, we iterate over each observation $O$ for which we want to calculate the (+fSCA). Using (+STARE), we find all snow-free observations $O_0$ that spatially coincide with each $O$. From those, we find the observation with the most similar along-scan position to $O$. We then feed the reflectance spectra of $O$ and $O_0$ ($R$ and $R_0$, respectively) to SpiPy[^spipy], which returns the (+fSCA), the fractional shade cover (fShade), the snow's grain size, and dust concentration for $O$.
+Secondly, we iterate over each observation $O$ for which we want to calculate the (+fSCA). Using (+STARE), we find all snow-free observations $O_0$ that spatially coincide with each $O$. From those, we find the observation with the most similar along-scan position to $O$. We then feed the reflectance spectra of $O$ and $O_0$ ($R$ and $R_0$, respectively) to SpiPy[^spipy], which returns the (+fSCA), the fractional shade cover (fShade), the snow's grain size, and (+LAP) concentration for $O$.
 
 [^spipy]: https://github.com/edwardbair/SpiPy
 
 # Evaluation and Results
-We carry out two evaluation efforts. First, we evaluate the accuracy of (+fSCA) retrievals for a short period over a large (+ROI). We here evaluate the influence of the spatial resolution and viewing angle discretization of the $R_0$ library. We evaluate the accuracy by comparing the (+fSCA) values to high-resolution binary snowmaps of the approximate (+IFOV) footprints. The task is twofold:
+We carry out two evaluation efforts. First, we evaluate the accuracy of (+fSCA) retrievals for a short period over a large (+ROI). We here evaluate the influence of the spatial resolution and viewing angle discretization of the $R_0$ library. We evaluate the accuracy by comparing the (+fSCA) values to high-resolution binary snowmaps of the approximate (+IFOV) footprints. In the second effort, we evaluate the plausibility of seasonal (+fSCA) time series over small selected locations. We further attempt to join (+fSCA) retrievals from (+MODIS)/Terra and (+VIIRS)/Suomi.
+
+The efforts differ from conventional (+SPIReS) processing and validation as follows:
 
 - We ensure that each fractionally snow-covered observation is associated with a snow-free observation that is as close as possible regarding location and viewing geometry. 
 - We use the approximate footprint of each (+IFOV) to allow a more accurate comparison to ground-truth data to better evaluate the (+fSCA) accuracy.
-
-In the second effort, we evaluate the plausibility of seasonal (+fSCA) time series over small selected locations. We further attempt to join (+fSCA) retrievals from (+MODIS)/Terra and (+VIIRS)/Suomi.
 
 ## fSCA accuracy
 To evaluate the (+fSCA) accuracy, we use a Binary Viewable Snow Covered Area Validation Mask [@Stillinger_Bair_2020] derived from cloud-free WorldView-2/3 data for 2017-12-11 over our (+ROI). 
@@ -349,17 +356,17 @@ In figure \ref{snow_depth}, we display snow depth measured at the (+CUES) [@Cole
 
 [^cues]: Data retrieved from [https://snow.ucsb.edu/](https://snow.ucsb.edu/)
 
-![Average daily snow depth as measured at CUES between 2017-12-05 and 2017-12-19. Data retrieved from snow.ucsb.edu. No significant snowmelt nor snow precipitation event appeared in the period.   \label{snow_depth} ](images/C3/snowdepth.png)
+![Average daily snow depth as measured at CUES between 2017-12-05 and 2017-12-19. Data retrieved from snow.ucsb.edu. No significant snowmelt nor snow precipitation event appeared in the period.   \label{snow_depth} ](images/C3/snowdepth.png){width=90%}
 
 
-We compute the (+fSCA) for each (+MODIS) and (+VIIRS) (+IFOV) falling into our (+ROI) using snow-free endmembers for all of our $R_0$ libraries for six days between 2017-12-07 and 2017-12-13, skipping 2017-12-09 since it had a far-off nadir viewing angle for MODIS/Terra over our (+ROI). A total of \num{13709} (+MODIS) and \num{8912} (+VIIRS) (+^IFOV) fell into our spatiotemporal bounding box. We additionally compute the (+fSCA) using a standard MODIS-grid $R_0$ library as a reference. 
+We compute the (+fSCA) for each (+MODIS) and (+VIIRS) (+IFOV) falling into our (+ROI) using snow-free endmembers for all of our $R_0$ libraries for six days between 2017-12-07 and 2017-12-13, skipping 2017-12-09 since it had a far-off nadir viewing angle for MODIS/Terra over our (+ROI). A total of \num{13709} (+MODIS) and \num{8912} (+VIIRS) (+^IFOV) fell into our spatiotemporal bounding box. We additionally compute the (+fSCA) using a standard (+MODIS)-grid $R_0$ library as a reference. 
 
 ### MODIS
-The six days contained six distinctly different (+MODIS) overpasses, as displayed in figure \ref{overpasses}: Two overpasses appeared close to the nadir, two overpasses far off-nadir, and two overpasses at an intermediate distance, one each with (+MODIS) passing east and west of our (+ROI). We can notice a slight influence of smoke from the Thomas Fire in Santa Barbara and Ventura county (c.f. figure \ref{thomas}) over our ROI. 
+The six days contained six distinctly different (+MODIS) overpasses, as displayed in figure \ref{overpasses}: Two overpasses appeared close to the nadir, two overpasses far off-nadir, and two overpasses at an intermediate distance, one each with (+MODIS) passing east and west of our (+ROI). We can notice a slight influence of smoke from the Thomas Fire in Santa Barbara and Ventura county (c.f. figure \ref{thomas}) over our (+ROI). 
 
-![MODIS overpasses (magenta) over our (+ROI) (green) for our temporal extent between 2017-12-07 and 2017-12-13. Two overpasses appeared close to the nadir, two overpasses far-off nadir, and two overpasses at an intermediate distance. \label{overpasses}](images/C3/overpasses.png)
+![MODIS overpasses (magenta) over our (+ROI) (green) for our temporal extent between 2017-12-07 and 2017-12-13. Two overpasses appeared close to the nadir, two overpasses far-off nadir, and two overpasses at an intermediate distance. Basemap: NASA GIBBS \label{overpasses}](images/C3/overpasses.png)
 
-![Smoke over Santa Barbara county from the Thomas fire \label{thomas}](images/C3/thomas.png)
+![Smoke over Santa Barbara county from the Thomas fire. Source: NASA worldview. \label{thomas}](images/C3/thomas.png)
 
 We then use our (+IFOV) footprint approximations to retrieve the pixels of the high-resolution Binary Viewable Snow Covered Area Validation Mask that intersect each footprint. For each footprint, we compute the "ground truth" fractional snow cover $fSCA_{gt}$ as the ratio of pixels marked as snow-covered to the total number of pixels intersecting the footprint. We then declare the difference between the (+fSCA) retrieved for the footprint from (+SPIReS) $fSCA_{spires}$ and the $fSCA_{gt}$ as the estimation error and calculate the (+MAE), (+RMSE), and the variance over all (+^IFOV).
 
@@ -374,12 +381,11 @@ $$
 RMSE = \sqrt{\sum_{i=0}^n \frac{(fSCA_{spires} -fSCA_{gt})^2}{n}}
 $$
 
-### MODIS
-The (+fSCA) errors are displayed in figure \ref{results_modis_full}. The three leftmost boxes-and-whiskers are the errors of (+fSCA) computed using (+MODIS)-grid $R_0$ library values. In the leftmost box-and-whisker, we assumed the (+IFOV) footprints to be the (+MODIS) grid cells. This scenario is thus equivalent to the conventional (+SPIReS) approach. In the box-and-whisker, we assume the (+IFOV) footprints to be circles with a constant radius. In the third box-and-whisker, we assumed the (+IFOV) footprints to be ellipses. The following boxes-and-whiskers represent the errors of the (+fSCA) computed using STARE-based $R_0$ values at increasing spatial resolution and viewing angle discretization. We can immediately observe the following results:
+The (+fSCA) errors are displayed in figure \ref{results_modis_full}. The three leftmost boxes-and-whiskers are the errors of (+fSCA) computed using (+MODIS)-grid $R_0$ library values. In the leftmost box-and-whisker, we assumed the (+IFOV) footprints to be the (+MODIS) grid cells. This scenario is thus equivalent to the conventional (+SPIReS) approach. In the second box-and-whisker, we assume the (+IFOV) footprints to be circles with a constant radius. In the third box-and-whisker, we assumed the (+IFOV) footprints to be ellipses. The following boxes-and-whiskers represent the errors of the (+fSCA) computed using STARE-based $R_0$ values at increasing spatial resolution and viewing angle discretization. We can immediately observe the following results:
 
 1) The (+fSCA) estimates accuracy improves when assuming a circular (+IFOV) footprint centered over the (+IFOV)'s geolocation and improves marginally further when assuming an ellipse as the (+IFOV) footprint
 2) The (+fSCA) estimate accuracy is better for the (+STARE) $R_0$ libraries than for the (+MODIS) grid $R_0$ libraries. This is also true for quadfurcation level 14, which has a similar spatial resolution as the (+MODIS) grid.
-3) The (+fSCA) estimates accuracy improves with the quadfurcation levels and viewing geometry discretization. 
+3) The (+fSCA) estimates accuracy improves with higher quadfurcation levels and viewing geometry discretization. 
 4) The best (+fSCA) estimates are for high spatial resolution (quadfurcation levels 16 and 17) and a medium number of viewing geometry bins (4). The highest accuracy was achieved for (+STARE) quadfurcation levels 16 and 17 and 4 viewing geometry bins.
 
 ![Results of the (+fSCA) errors. The three leftmost columns are (+fSCA) computed using the grided $R_0$ library. \label{results_modis_full}](images/C3/results_full.png)
@@ -389,7 +395,7 @@ Table \ref{tab_res_modis} shows the mean absolute error (+MAE), the (+RMSE), and
 Table: Mean absolute error, root mean square error, and variance of the (+fSCA) estimates for different $R_0$ scenarios. \label{tab_res_modis}
 
 | $R_0$ res          |$R_0$ view bins    | IFOV extent | MAE    | RMSE   |  Variance |
-|:--------------  |:----------     |:----------- |-------:|-------:|-----------:|
+|:--------------  |----------:     |:----------- |-------:|-------:|-----------:|
 | grid            | 1              | cell        | 0.0644 | **0.0915** |     0.0081 |
 | grid            | 1              | circle      | 0.0534 | 0.0736 |     0.0051 |
 | grid            | 1              | ellipse     | 0.0520 | 0.0718 |     0.0049 |
@@ -417,22 +423,22 @@ Table: Mean absolute error, root mean square error, and variance of the (+fSCA) 
 | level 17        | 4              | ellipse     | **0.0366** | 0.0602 |     0.0036 |
 
 
-![Visualization of oversampling for a far off-nadir overpass. Red stars: geolocations of (+IFOV). Red boxes: (+MODIS) grid cells. There are notably far fewer (+^IFOV)than grid cells. \label{oversampling}](images/C3/ROIcells.png)
-
 We interpret the 4 previous findings as follows:
 
 1. Using an (+IFOV) footprint approximation centered around the geolocation is relevant. The circles and ellipses around the relatively precise geolocation are a better approximation of the (+IFOV) than cells of a fixed grid. The triangular point-spread function likely causes the merely marginal improvement of ellipse vs. circle: Most of the information that a sensor collects comes from the area immediately around the center. Therefore, respecting the center location is mainly relevant, while the exact shape of the (+IFOV) approximation may not play a significant role.
 
 2. The (+MODIS) gridding algorithm 'forces' there to be one observation per grid cell per day. On days with far-off nadir overpasses, this leads to oversampling, meaning that a single observation is associated with multiple grid cells (c.f. figure \ref{oversampling}). Since each grid cell has its own $R_0$, each one of those grid cells will have a different (+fSCA) estimate, but not for the right reason. If we compute (+fSCA) for (+^IFOV) rather than for grid cells, we circumvent this error, explaining the immediate accuracy improvement even at (+STARE) quadfurcation level 14.
 
-3. The $R_0$ library quadfurcation level dictates how closely $O$ and $O_0$ center locations are matched, while the viewing geometry discretization dictates how closely the footprint of the (+^IFOV) of $O$ and $O_0$ are matched. The closer the footprints match, the less noise from co-registration appears. Higher quadfurcation, therefore, result in higher accuracy. We would not expect further gains at quadfurcation levels higher than the geolocation accuracy.
+3. The $R_0$ library quadfurcation level dictates how closely $O$ and $O_0$ center locations are matched, while the viewing geometry discretization dictates how closely the footprint shape of the (+^IFOV) of $O$ and $O_0$ are matched. The closer the footprints match  (in terms of location and shape), the less noise from co-registration appears. Higher quadfurcation, therefore, result in higher accuracy. We would not expect further gains at quadfurcation levels higher than the geolocation accuracy.
 
 4. The number of candidates for an ideal snow-free observation during the creation of the $R_0$ library decreases with increasing resolutions (both in terms of quadfurcation level and viewing geometry discretization). At too-high resolutions, some bins will end up with suboptimal $R_0$ spectra (e.g., cloud or smoke contamination), driving down the overall accuracy.
+
+![Visualization of oversampling for a far off-nadir overpass. Red stars: geolocations of (+IFOV). Red boxes: (+MODIS) grid cells. There are notably far fewer (+^IFOV)than grid cells. \label{oversampling}](images/C3/ROIcells2.png)
 
 ### VIIRS
 We conducted the same analysis for the (+VIIRS) surface reflectance data as we did for the (+MODIS) surface reflectance data. Considering the similar band-passes of (+MODIS) and (+VIIRS), we also evaluated the accuracy of (+fSCA) estimates when using (+VIIRS) spectra for $R$ and (+MODIS) $R_0$ spectra. This is interesting as creating an $R_0$ library at high resolutions requires a long data range, which is not available for new sensors. Thus, the ability to use $R_0$ from a different sensor than $R$ allows calculating (+fSCA) estimates with (+SPIReS) as soon as a new sensor becomes available.
 
-Table \ref{res_tab_viirs} summarizes the accuracy metrics of (+fSCA) estimates from (+VIIRS) observations. The overall (+fSCA) accuracy is lower for the (+VIIRS) surface reflectance data than for the (+MODIS) surface reflectance data. (+VIIRS)' lower spatial resolution may partially explain this. The viewing geometry discretization does not improve the (+fSCA) accuracy for (+VIIRS) data. This makes sense considering the quasi-constant spatial resolution of (+VIIRS) (+^IFOV). For (+VIIRS), the highest accuracy is achieved for lower quadfurcation levels than for the (+MODIS) data. Again, this may be explained by the lower spatial resolution of VIIRS. 
+Table \ref{res_tab_viirs} summarizes the accuracy metrics of (+fSCA) estimates from (+VIIRS) observations. The overall (+fSCA) accuracy is lower for the (+VIIRS) surface reflectance data than for the (+MODIS) surface reflectance data. (+VIIRS)' lower spatial resolution may partially explain this. The viewing geometry discretization does not improve the (+fSCA) accuracy for (+VIIRS) data. This makes sense considering the quasi-constant spatial resolution of (+VIIRS) (+^IFOV). For (+VIIRS), the highest accuracy is achieved for lower quadfurcation levels than for the (+MODIS) data. Again, this may be explained by the lower spatial resolution of (+VIIRS). 
 
 Table: Mean absolute error, root mean square error, and variance of the (+fSCA) estimates for different $R_0$ scenarios \label{res_tab_viirs}
 
@@ -511,21 +517,23 @@ While part of the noise certainly is caused by uncertainties in the atmospheric 
 
 ![SPIReS (+fSCA) for a level 15 trixel at CUES.\label{fsca_stare_cues}](images/C3/fsca_stare_cues.png)
 
-In figure \ref{fsca_stare_reds}, we display the (+fSCA) computed for a level 15 trixel at Reds Lake, and in figure \ref{fsca_stare_cues} for a level 15 trixel at (+CUES) for (+MODIS) and (+VIIRS). We computed the (+fSCA) in figure \ref{fsca_stare_reds} and \ref{fsca_stare_cues} with the (+STARE) $R_0$ library at level 17 and 3 viewing geometry bins. For comparison, we added the snow depth measured at (+CUES) to identify snow precipitation events. Note that we do not expect the snow depth to be proportional to the (+fSCA) at Reds Lake or CUES. However, they are correlated. The timing of the snow accumulation events closely matches the increases in (+fSCA). We also note that the (+fSCA) during the summer months is closer to zero than for the gridded data in figure \ref{fsca_gridded}. This is caused by a better spatial match of $R$ and $R_0$. The remaining noise in the summer months may partially be caused by wildfire smoke. The difference between the (+MODIS) (+fSCA) and the (+VIIRS) (+fSCA) can be explained by their differing spatial resolution of \SI{500}{\meter} vs. \SI{750}{\meter}. Overall, compared to figure  \ref{fsca_gridded}, we traded off temporal resolution for location accuracy, leading to a significantly less noisy signal. 
+In figure \ref{fsca_stare_reds}, we display the (+fSCA) computed for a level 15 trixel at Reds Lake, and in figure \ref{fsca_stare_cues} for a level 15 trixel at (+CUES) for (+MODIS) and (+VIIRS). We computed the (+fSCA) in figure \ref{fsca_stare_reds} and \ref{fsca_stare_cues} with the (+STARE) $R_0$ library at level 17 and 3 viewing geometry bins. For comparison, we added the snow depth measured at (+CUES) to identify snow precipitation events. Note that we do not expect the snow depth to be proportional to the (+fSCA) at Reds Lake or (+CUES). However, they are correlated. The timing of the snow accumulation events closely matches the increases in (+fSCA). We also note that the (+fSCA) during the summer months is closer to zero than for the gridded data in figure \ref{fsca_gridded}. This is likely caused by a better spatial match of $R$ and $R_0$. The remaining noise in the summer months may partially be caused by wildfire smoke. The difference between the (+MODIS) (+fSCA) and the (+VIIRS) (+fSCA) can be explained by their differing spatial resolution of \SI{500}{\meter} vs. \SI{750}{\meter}. Overall, compared to figure  \ref{fsca_gridded}, we traded off temporal resolution for location accuracy, leading to a significantly less noisy signal. 
 
 ![A grid cell (blue parallelogram) and all (+IFOV)geolocations associated with it for the snow season 2021-2022 (blue dots) around Reds lake. The red triangle is a level 15 trixel. The red dots are the (+MODIS) (+^IFOV)that fell into this trixel, and the green dots are the (+VIIRS) (+^IFOV)that fell into it for the 2021/2022 snow season. \label{timeseries_locations}](images/C3/timeseries_locations.png)
 
 The time series in figure \ref{fsca_stare_reds} and \ref{fsca_stare_cues} include all (+^IFOV) whose geolocation fell into the respective trixels. The blue dots in figure \ref{timeseries_locations} are the geolocations of the (+^IFOV) associated with the grid cell around Reds Lake used for figure \ref{fsca_gridded}. The red and green dots are the geolocations of the (+MODIS) and (+VIIRS) (+^IFOV) that fell into the level 15 trixel used for figure \ref{fsca_stare_reds}. 
 
-We did not filter out any observations subject to their sensor zenith angle. Figure \ref{fsca_stare_reds} and \ref{fsca_stare_reds} thus contain (+^IFOV)with significantly larger footprints than others. However, the (+IFOV)centers were all at approximately the same location. Since (+MODIS) and (+VIIRS) have a triangular sensor response function, it may be assumed that the majority of the information of any given pixel does come from the area close to the center location, explaining the smoothness of the curves despite possibly significant differences in the (+IFOV)footprint sizes.
+We did not filter out any observations subject to their sensor zenith angle. Figure \ref{fsca_stare_reds} and \ref{fsca_stare_reds} thus contain (+^IFOV) with significantly larger footprints than others. However, the (+IFOV) centers were all at approximately the same location. Since (+MODIS) and (+VIIRS) have a triangular sensor response function, it may be assumed that the majority of the information of any given pixel does come from the area close to the center location, explaining the smoothness of the curves despite possibly significant differences in the (+IFOV) footprint sizes.
 
 We generated the previous smooth (+fSCA) time series by pegging the location to a sufficiently small extent. However, more often than not, we are interested in the (+fSCA) of an arbitrarily shaped region, such as a control site, a meadow, or a lake. Using (+STARE), we may define such regions as a set of trixels. (+STARE) makes it easily possible to find all observations that intersect this region, regardless of at what resolution the observations were made. 
 
 Figure \ref{reds_location} again displays the (+MODIS) cell around Reds lake. Additionally, we added the approximate extent of the meadow around the lake and all (+MODIS) and (+VIIRS) (+IFOV) geolocations intersecting this meadow. We then calculated the (+fSCA) for all those observations and resampled them to weekly values. The resulting signal is displayed in \ref{complex_timeline}. For comparison, we also plotted the (+fSCA) of the grid cell resampled to weekly values. The signal for the combined (+MODIS) - (+VIIRS)  observations is smoother and generally follows the timing of the snowing events. Also, note that the (+fSCA) estimates drop closer to 0 than they do for the gridded (+fSCA) estimates.
 
-![Meadow around Reds Lake represented by trixel cover (red triangles). All (+MODIS) and (+VIIRS) observations geolocations that fell into this Region are marked as red and green dots.\label{reds_location}](images/C3/complex.png)
+![Meadow around Reds Lake represented by trixel cover (red triangles). All (+MODIS) and (+VIIRS) observations geolocations that fell into this Region are marked as magenta and yellow dots.\label{reds_location}](images/C3/complex2.png){width=90%}
 
 ![fSCA timeline for a complex region for combined (+MODIS) and (+VIIRS) observation (red) and an adjacent grid cell (blue). Both curves have been resampled to 7 days. Note that the (+fSCA) estimates stay well above 0.1 in the summer months for the cell estimates. \label{complex_timeline}](images/C3/complex_timeline.png)
+
+\clearpage
 
 # Conclusions and outlook
 Since (+SPIReS) requires finding a spatially coinciding snow-free reference spectrum to estimate the (+fSCA) of an observation, it is sensitive to the accuracy of spatial matching of observations. However, the spatial discretization of gridded data disallows for accurate spatial matching. Further, gridded data disallows for a precise evaluation of the estimation accuracy. Gridded data simply does not allow us to determine for what exact area an (+fSCA) estimation was done. Therefore, finding the ground truth data that precisely intersects an observation is impossible. Using (+STARE), we were able to work directly with ungridded swath data. By forgoing gridded data and working directly with ungridded swath data, we were able to exploit the full spatial fidelity of (+MODIS) surface reflectance data. This allowed us to find snow-free observations that more closely match the area and viewing geometry of observations for which the (+fSCA) are to be estimated. Further, we defined approximate footprints of (+^IFOV), which enabled us to find the ground truth data that actually intersect the footprints, allowing us to improve the accuracy evaluation. The improvements almost halve the mean absolute error in the (+fSCA) estimations.
