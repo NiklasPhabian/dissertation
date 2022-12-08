@@ -48,9 +48,11 @@ However, spatiotemporal alignment is cumbersome and challenging. There is a mult
 
 # Towards Data-Centricity 
 
-Contrary to file-centricity, data-centricity requires data to be co-aligned. Data alignment voids the necessity of (or at least simplifies) (+ETL) and makes computation at the point of storage possible[^compute_storage]. In practical terms, this means storing data in some kind of database. 
+Contrary to file-centricity, data-centricity requires data to be co-aligned. Data alignment voids the necessity of (or at least simplifies) (+ETL) and makes computation at the point of storage possible[^compute_storage]. In practical terms, this means storing data in some kind of database[^database]. 
 
 [^compute_storage]: The ultimate goal of data-centricity is voiding the need (or at least reducing) data movement. Data alignment is hereby crucial: Having data aligned allows for improved data sharding/placement. I.e., spatiotemporally coincidental data can be stored in physical proximity in, e.g., shared-nothing architectures.
+
+[^database]: “A structured set of data held in computer storage and typically accessed or manipulated by means of specialized software.” [@databaseOED].
 
 I am addressing three questions arising in the file-twilight of environmental sciences:
 

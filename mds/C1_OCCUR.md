@@ -211,7 +211,7 @@ If one or more identifiers to the same (+OPeNDAP) (+URL) already have been store
 
 If the (+UNF) of the current state differs from all stored (+^UNF) to the same (+OPeNDAP) (+URL), a new identity is created, and the user is provided with the newly created identifier. Figure \ref{fig_store} schematically illustrates the flow for retrieving an identity.
 
-![Class diagram of the data identity and flow for retrieving an identity. \label{fig_store}](images/C1/store.png){ width=90% }
+![Class diagram of the data identity and flow for retrieving an identity. \label{fig_store}](images/C1/store.pdf){ width=90% }
 
 
 ## Dereferencing identities
@@ -225,7 +225,7 @@ GET $HOST/dereference/?identifier=$IDENTIFIER
 
 If the (+^UNF) don't match, the current state can be assumed to differ from the state of the data at the identity creation. The user, thus, will be redirected to a landing page containing a warning indicating that the referenced state of the data is not accessible anymore. It then is up to the user whether or not to retrieve the data in its current state. The flow of the dereferencing is illustrated in figure \ref{fig_dereference}.
 
-![Flow for the dereferencing an identity. \label{fig_dereference}](images/C1/dereference.png)
+![Flow for the dereferencing an identity. \label{fig_dereference}](images/C1/dereference_flow.pdf)
 
 
 ## Formatting citations

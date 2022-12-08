@@ -42,8 +42,7 @@ $(CHAPTERDIR)/%.tex: $(MDDIR)/%.md
 cleanstandalone:
 	rm -fv $(STANDALONEDIR)/*
 
-cleandissertation:
-	
+cleandissertation:	
 	rm -fv $(DISSERTATIONDIR)/dissertation.[a-oq-su-z]* 
 	rm -fv $(DISSERTATIONDIR)/dissertation.tex.*
 	rm -fv $(DISSERTATIONDIR)/dissertation.toc
