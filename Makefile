@@ -15,6 +15,7 @@ STANDALONEPDFS=$(patsubst $(STANDALONEDIR)/%.tex,$(STANDALONEDIR)/%.pdf,$(TEXSTA
 chapters: $(TEXCHAPTERS)
 texstandalone: $(TEXSTANDALONES)
 standalone: $(STANDALONEPDFS) 
+
 dissertation.pdf: $(TEXCHAPTERS) tex/* dissertation.tex
 	pdflatex -shell-escape -output-directory $(DISSERTATIONDIR) $(basename $@).tex | awk 'BEGIN{IGNORECASE = 1}/warning|!/,/^$$/;' 	
 	makeglossaries -d $(DISSERTATIONDIR) $(basename $(notdir $@))

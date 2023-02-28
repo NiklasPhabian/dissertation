@@ -3,7 +3,7 @@
 # Dependencies
 - pandoc
 - pandoc-citeproc
-- texlive-extra
+- texlive-latex-extra
 - texlive-science
 - texlive-bibtex-extra
 - make
@@ -14,8 +14,9 @@ https://github.com/tomncooper/pandoc-gls
 
 
 ## For tex
-
-    sudo apt install texlive-bibtex-extra texlive-science texlive-latex-extra biber
+```bash
+sudo apt install texlive-bibtex-extra texlive-science texlive-latex-extra biber
+```
     
 ## Biber
 Using lates built of biber (in full/). Needs libsombok-dev installed

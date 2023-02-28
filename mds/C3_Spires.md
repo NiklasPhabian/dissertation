@@ -1,6 +1,7 @@
 ---
-title: Improving fractional snow-coverd area estimations through increased spatial fidelity
+title: Improving fractional snow-covered area estimations through increased spatial fidelity
 date: "2022-09-03"
+author: Niklas Griessbaum
 output:
   pdf_document:
     highlight: tango
@@ -400,7 +401,7 @@ The (+fSCA) errors are displayed in figure \ref{results_modis_full}. The three l
 Table \ref{tab_res_modis} shows the mean absolute error (+MAE), the (+RMSE), and the variance of the (+fSCA) estimates for the scenarios named above. [@Bair2021] and [@Stillinger2022] state the (+RMSE) for (+SPIReS) with 0.12 and 0.1, respectively. Those values approximately match the (+RMSE) of our conventional scenario (0.0915). In terms of (+MAE), the best STARE-based accuracy is achieved at a spatial resolution of 16/17 and 4 viewing geometry discretizations. The (+MAE) is almost halved compared to the conventional grid-based approach.
 
 Table: Mean absolute error, root mean square error, and variance of the (+fSCA) estimates for different $R_0$ scenarios. \label{tab_res_modis}
-****
+
 | $R_0$ res          |$R_0$ view bins    | IFOV extent | MAE    | RMSE   |  Variance |
 |:--------------  |----------:     |:----------- |-------:|-------:|-----------:|
 | grid            | 1              | cell        | **0.0644** | **0.0915** |     0.0081 |

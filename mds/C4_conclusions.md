@@ -1,3 +1,24 @@
+---
+title: Conclusions
+date: "2022-09-03"
+output:
+  pdf_document:
+    highlight: tango
+numbersections: true
+bibliography: /home/griessbaum/Dropbox/UCSB/library/library.bib
+link-citations: yes
+linkcolor: blue
+header-includes:
+    - \usepackage{hyperref}         
+    - \usepackage{siunitx}
+    - \DeclareSIUnit\month{month}
+    - \usepackage{lmodern}
+    - \usepackage[acronym, nomain]{glossaries}    
+    - \include{tex/acronyms.tex}
+    - \usepackage[outputdir=chapters_standalone]{minted}
+    - \makeglossaries
+---
+
 File-centric data analysis is a paradigm in which files are the smallest unit of data. While file-centricity simplifies the task of archiving and distributing data, it pushes the burden of extracting, transforming, and loading (ETL) data before performing any data analysis to the data users.
 Data-centric data analysis, on the other hand, is a paradigm in which the smallest unit of data are individual observations (e.g., instances/objects in some form of a schema), and data thus are stored in some form of a 
 database and accessed by some form of query. 
